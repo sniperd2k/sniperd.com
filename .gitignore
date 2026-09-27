@@ -1,0 +1,4 @@
+﻿# sniperd.com
+*.bak
+.DS_Store
+Thumbs.db
