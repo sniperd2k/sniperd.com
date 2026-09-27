@@ -1,4 +1,75 @@
-﻿<html>
-<head><title>sniperd.com</title></head>
-<body>seed</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>sniperd.com — Under Construction</title>
+  <meta name="description" content="sniperd.com is under construction. Please check back soon." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="canonical" href="https://sniperd.com/" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      color: #0f0;
+      font-family: "Courier New", Courier, monospace;
+      text-align: center;
+      padding: 1.25rem;
+    }
+    main {
+      max-width: 28rem;
+      width: 100%;
+    }
+    img {
+      max-width: min(100%, 320px);
+      height: auto;
+      margin: 0 auto 1rem;
+      display: block;
+      image-rendering: auto;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.1rem, 4vw, 1.4rem);
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      color: #ffff00;
+      text-shadow: 1px 1px 0 #f00;
+    }
+    p {
+      margin: 0.4rem 0;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #0f0;
+    }
+    .blink { animation: blink 1.2s step-start infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .blink { animation: none; }
+    }
+    .fine {
+      margin-top: 1.25rem;
+      font-size: 0.7rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img
+      src="assets/under-construction.gif"
+      width="320"
+      height="120"
+      alt="Animated under construction graphic with caution cones and hard hat"
+    />
+    <h1><span class="blink">⚠</span> SITE UNDER CONSTRUCTION <span class="blink">⚠</span></h1>
+    <p>Welcome to <b>sniperd.com</b>.</p>
+    <p>Please excuse the dust — something cooler is being welded together.</p>
+    <p class="fine">GIF: original site asset (90s homage).</p>
+  </main>
+</body>
 </html>
