@@ -186,7 +186,7 @@ function handleTrigger(state, ev) {
         award(state, 150_000, 'LANE');
       }
       if (ball) {
-        kickBall(ball, state.geometry, -5, 1);
+        kickBall(ball, state.geometry, -7, 8);
         emitSparks(state.particles, ball.x, ball.y, 10, false);
       }
       if (state.modes.peakLit) {
@@ -201,7 +201,7 @@ function handleTrigger(state, ev) {
       state.powderPlusHits += 1;
       award(state, v, 'RAMP');
       state.modes = bumpModeProgress(state.modes, 1);
-      if (ball) kickBall(ball, state.geometry, 3, 1);
+      if (ball) kickBall(ball, state.geometry, 4, 2);
       emitSparks(state.particles, ball?.x || 78, ball?.y || 96, 10, false);
       pushSfx(state, 'ramp');
       break;
@@ -209,7 +209,7 @@ function handleTrigger(state, ev) {
     case 'loop_exit': {
       state.modes = bumpModeProgress(state.modes, 1);
       award(state, pipeRampValue(state.modes.modeProgress), 'LOOP');
-      if (ball) kickBall(ball, state.geometry, -2, 2);
+      if (ball) kickBall(ball, state.geometry, -3, 3);
       emitSparks(state.particles, ball?.x || 268, ball?.y || 148, 8, false);
       pushSfx(state, 'ramp');
       break;
@@ -219,7 +219,7 @@ function handleTrigger(state, ev) {
       award(state, v || state.powderValue, state.treeWellLit ? 'SAUCER 5×' : 'SAUCER');
       pushSfx(state, 'saucer');
       state.treeWellLit = false;
-      if (ball) kickBall(ball, state.geometry, -3, 4);
+      if (ball) kickBall(ball, state.geometry, -4, 5);
       break;
     }
     case 'inlane_left':

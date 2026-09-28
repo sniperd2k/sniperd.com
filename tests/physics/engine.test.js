@@ -35,7 +35,7 @@ describe('Matter.js fixed-step physics', () => {
 
   it('gravity pulls ball downhill (+Y) in open space', () => {
     const geo = createTableGeometry();
-    const ball = createBall(55, 480, 0, 0);
+    const ball = createBall(180, 400, 0, 0);
     ball.held = false;
     applyBallState(geo, ball);
     const y0 = ball.y;

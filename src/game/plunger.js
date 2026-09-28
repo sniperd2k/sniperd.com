@@ -1,22 +1,24 @@
 /**
  * Plunger pull → launch power curve.
  * pullNorm: 0..1 (how far the plunger is pulled)
- * Returns launch speed and how far up the lane the ball travels conceptually.
+ * Returns launch speed (Matter.js vy magnitude) for the skill lane.
  */
 
 export const PLUNGER_MIN_PULL = 0.08;
-export const PLUNGER_MAX_SPEED = 22;
-export const PLUNGER_MIN_SPEED = 4;
+/** Full pull must clear lane exit into upper playfield. */
+export const PLUNGER_MAX_SPEED = 28;
+export const PLUNGER_MIN_SPEED = 7;
 
 /**
- * Power curve: short pull = soft, long pull = hard.
- * Uses ease-in quadratic so short pulls stay gentle.
+ * Power curve: short pull = soft (falls back in lane),
+ * long pull = hard (reaches skill shot / upper PF).
+ * Mild ease-in so medium pulls still climb.
  */
 export function plungerPower(pullNorm) {
   const t = clamp01(pullNorm);
   if (t < PLUNGER_MIN_PULL) return 0;
   const u = (t - PLUNGER_MIN_PULL) / (1 - PLUNGER_MIN_PULL);
-  const curved = u * u; // ease-in
+  const curved = Math.pow(u, 1.35);
   return PLUNGER_MIN_SPEED + curved * (PLUNGER_MAX_SPEED - PLUNGER_MIN_SPEED);
 }
 
@@ -28,7 +30,6 @@ export function plungerLaneReach(pullNorm) {
   const speed = plungerPower(pullNorm);
   if (speed <= 0) return 0;
   const reach = (speed - PLUNGER_MIN_SPEED) / (PLUNGER_MAX_SPEED - PLUNGER_MIN_SPEED);
-  // Map to 0.25..1.0 so short pull still moves a bit
   return 0.25 + clamp01(reach) * 0.75;
 }
 

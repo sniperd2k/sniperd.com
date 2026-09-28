@@ -20,23 +20,30 @@ export const PHYSICS_HZ = 60;
 export const FIXED_DT_MS = 1000 / PHYSICS_HZ;
 export const FIXED_DT = FIXED_DT_MS / 1000;
 
-/** Tunable table-tilt params (original SniperD Cadet feel). */
+/**
+ * Aggressively retuned for playable Cadet feel:
+ * strong hinged flippers (cradle/aim), punchy jets/slings,
+ * lively ball that still drains cleanly.
+ */
 export const TUNING = {
   gravityX: 0,
   gravityY: 1,
-  gravityScale: 0.00095,
-  flipperPower: 0.55,
-  flipperReturn: 0.28,
-  flipperMaxOmega: 0.55,
-  rubberRestitution: 0.85,
-  wallRestitution: 0.72,
-  bumperKick: 0.08,
-  bumperRestitution: 1.2,
-  ballFriction: 0.001,
-  ballFrictionAir: 0.02,
-  ballRestitution: 0.5,
-  ballDensity: 0.004,
-  slingKick: 0.06,
+  gravityScale: 0.00098,
+  flipperPower: 1.05,
+  flipperReturn: 0.38,
+  flipperMaxOmega: 0.95,
+  flipperBatImpulse: 0.12,
+  rubberRestitution: 0.92,
+  wallRestitution: 0.65,
+  bumperKick: 0.22,
+  bumperRestitution: 1.35,
+  ballFriction: 0.002,
+  ballFrictionAir: 0.012,
+  ballRestitution: 0.55,
+  ballDensity: 0.0035,
+  slingKick: 0.16,
+  flipperDensity: 0.14,
+  flipperRestitution: 0.55,
 };
 
 export const GRAVITY = TUNING.gravityScale;
@@ -87,7 +94,7 @@ export function createFlipper(pivotX, pivotY, length, restAngle, swing, side) {
     angularVel: 0,
     body: null,
     constraint: null,
-    thickness: side === 'mini' ? 8 : 12,
+    thickness: side === 'mini' ? 9 : 13,
   };
 }
 
@@ -108,7 +115,8 @@ function segBody(seg, restitution) {
   const cy = (seg.y1 + seg.y2) / 2;
   const length = Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1) || 1;
   const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
-  const thickness = seg.kind === 'lane' ? 5 : seg.kind === 'ramp' ? 7 : 8;
+  const thickness =
+    seg.kind === 'lane' ? 10 : seg.kind === 'ramp' ? 8 : seg.kind === 'sling' ? 10 : 8;
   const b = Bodies.rectangle(cx, cy, length, thickness, {
     isStatic: true,
     angle,
@@ -121,87 +129,99 @@ function segBody(seg, restitution) {
 }
 
 /**
- * Original Cadet layout — portrait mobile classic PC pinball feel.
- * Plunger skill lane, dual flippers, out/inlanes, slings, jet bumpers,
- * standup targets, left ramp + upper loop. Invented coordinates only.
+ * Original Cadet layout — portrait classic PC pinball feel.
+ * OPEN plunger exit (no dead-end cap), Italian-bottom drain,
+ * dual flippers + mini, out/inlanes, slings, jet cluster,
+ * standup CADET bank, left ramp + upper orbit.
  */
 export function createTableGeometry() {
   const W = TABLE_W;
   const H = TABLE_H;
 
   const walls = [
-    // Outer rails
-    createSegment(20, 42, 20, H - 26, 'wall'),
-    createSegment(W - 20, 42, W - 20, 108, 'wall'),
-    createSegment(20, 42, W - 20, 42, 'wall'),
-    // Drain gutters
-    createSegment(20, H - 26, 102, H - 8, 'wall'),
-    createSegment(W - 100, H - 8, W - 52, H - 92, 'wall'),
+    // Outer rails (full height right wall — plunger lane outer)
+    createSegment(18, 40, 18, H - 24, 'wall'),
+    createSegment(W - 18, 40, W - 18, H - 40, 'wall'),
+    createSegment(18, 40, W - 18, 40, 'wall'),
+
+    // Italian-bottom drain gutters (gap between flippers)
+    createSegment(18, H - 24, 108, H - 6, 'wall'),
+    createSegment(W - 108, H - 6, W - 56, H - 88, 'wall'),
+
     // Left outlane / inlane guides
-    createSegment(20, H - 155, 50, H - 72, 'wall'),
-    createSegment(56, H - 148, 108, H - 60, 'sling'),
+    createSegment(18, H - 168, 54, H - 78, 'wall'),
+    createSegment(60, H - 158, 112, H - 62, 'sling'),
+
     // Right sling + outlane toward plunger
-    createSegment(W - 118, H - 60, W - 56, H - 142, 'sling'),
-    createSegment(W - 54, H - 92, W - 38, H - 52, 'wall'),
-    // Plunger skill lane
-    createSegment(W - 48, H - 92, W - 48, 108, 'lane'),
-    createSegment(W - 20, H - 92, W - 20, 108, 'lane'),
-    createSegment(W - 48, 108, W - 20, 108, 'lane'),
-    // Left ramp (two rails)
-    createSegment(38, 210, 98, 88, 'ramp'),
-    createSegment(52, 218, 112, 98, 'ramp'),
+    createSegment(W - 122, H - 62, W - 60, H - 152, 'sling'),
+    createSegment(W - 56, H - 96, W - 40, H - 54, 'wall'),
+
+    // Plunger skill lane — open left exit (no dead-end cap, no bounce-back plate).
+    // Floor shelf keeps failed plunges from draining. Crest-exit kick in stepPhysics
+    // sends strong shots into the upper PF / skill corridor.
+    createSegment(W - 54, H - 52, W - 54, 95, 'lane'),
+    createSegment(W - 18, H - 52, W - 18, 42, 'lane'),
+    createSegment(W - 54, H - 52, W - 18, H - 52, 'lane'),
+
+    // Left ramp (two rails — visible chrome path)
+    createSegment(36, 220, 102, 78, 'ramp'),
+    createSegment(52, 228, 118, 88, 'ramp'),
+    // Ramp return apron (keeps ball from wedging under ramp)
+    createSegment(102, 78, 118, 88, 'ramp'),
+
     // Upper loop / orbit (top circuit)
-    createSegment(42, 78, 118, 54, 'orbit'),
-    createSegment(118, 54, 248, 54, 'orbit'),
-    createSegment(248, 54, 318, 78, 'orbit'),
-    createSegment(318, 78, 318, 155, 'orbit'),
-    createSegment(318, 155, 288, 175, 'orbit'),
-    // Mid-table guides (keep ball flowing, avoid dead pockets)
-    createSegment(78, H - 230, 92, H - 175, 'guide'),
-    createSegment(248, H - 230, 262, H - 175, 'guide'),
-    createSegment(100, 340, 118, 300, 'guide'),
-    createSegment(230, 340, 248, 300, 'guide'),
+    createSegment(36, 78, 110, 58, 'orbit'),
+    createSegment(110, 58, 230, 58, 'orbit'),
+    createSegment(230, 58, 290, 75, 'orbit'),
+    createSegment(290, 75, 290, 160, 'orbit'),
+    createSegment(290, 160, 255, 185, 'orbit'),
+
+    // Mid guides — gentle, avoid dead pockets (short, open)
+    createSegment(88, H - 250, 100, H - 200, 'guide'),
+    createSegment(250, H - 250, 262, H - 200, 'guide'),
   ];
 
   const bumpers = [
-    createBumper(128, 228, 17, 'jet0'),
-    createBumper(196, 208, 18, 'jet1'),
-    createBumper(162, 278, 16, 'jet2'),
-    createBumper(240, 268, 15, 'jet3'),
-    createBumper(110, 292, 14, 'jet4'),
+    createBumper(130, 220, 18, 'jet0'),
+    createBumper(200, 198, 19, 'jet1'),
+    createBumper(168, 268, 17, 'jet2'),
+    createBumper(238, 258, 16, 'jet3'),
+    createBumper(112, 288, 15, 'jet4'),
   ];
 
   const triggers = [
-    createCircleTrigger(W - 34, 98, 15, 'skill_shot'),
-    createCircleTrigger(78, 96, 16, 'ramp_exit'),
-    createCircleTrigger(268, 148, 14, 'loop_exit'),
-    createCircleTrigger(180, 155, 16, 'saucer'),
-    createCircleTrigger(52, H - 158, 11, 'inlane_left'),
-    createCircleTrigger(W - 108, H - 158, 11, 'inlane_right'),
+    // Skill shot sits in the exit arc of the plunger lane
+    createCircleTrigger(W - 100, 70, 20, 'skill_shot'),
+    createCircleTrigger(82, 90, 16, 'ramp_exit'),
+    createCircleTrigger(270, 145, 14, 'loop_exit'),
+    createCircleTrigger(180, 150, 17, 'saucer'),
+    createCircleTrigger(54, H - 165, 12, 'inlane_left'),
+    createCircleTrigger(W - 112, H - 165, 12, 'inlane_right'),
     createCircleTrigger(34, H - 58, 11, 'outlane_left'),
-    createCircleTrigger(W - 70, H - 52, 11, 'outlane_right'),
+    createCircleTrigger(W - 72, H - 52, 11, 'outlane_right'),
   ];
 
-  // Standup bank — CADET letters (original spelling, not MS branding)
+  // Standup bank — CADET letters as vertical posts (can't perch on top)
   const targets = [
-    { x: 58, y: 348, w: 16, h: 11, id: 'C', letter: 'C', bank: 'CADET' },
-    { x: 80, y: 346, w: 16, h: 11, id: 'A', letter: 'A', bank: 'CADET' },
-    { x: 102, y: 344, w: 16, h: 11, id: 'D', letter: 'D', bank: 'CADET' },
-    { x: 124, y: 346, w: 16, h: 11, id: 'E', letter: 'E', bank: 'CADET' },
-    { x: 146, y: 348, w: 16, h: 11, id: 'T', letter: 'T', bank: 'CADET' },
+    { x: 42, y: 300, w: 10, h: 28, id: 'C', letter: 'C', bank: 'CADET' },
+    { x: 66, y: 292, w: 10, h: 28, id: 'A', letter: 'A', bank: 'CADET' },
+    { x: 90, y: 286, w: 10, h: 28, id: 'D', letter: 'D', bank: 'CADET' },
+    { x: 114, y: 292, w: 10, h: 28, id: 'E', letter: 'E', bank: 'CADET' },
+    { x: 138, y: 300, w: 10, h: 28, id: 'T', letter: 'T', bank: 'CADET' },
   ];
 
+  // Slightly longer flippers, tighter gap for cradle / aim
   const flippers = [
-    createFlipper(118, H - 58, 54, 0.55, -0.95, 'left'),
-    createFlipper(242, H - 58, 54, Math.PI - 0.55, 0.95, 'right'),
-    createFlipper(96, 168, 32, 0.4, -0.7, 'mini'),
+    createFlipper(114, H - 56, 58, 0.52, -1.05, 'left'),
+    createFlipper(246, H - 56, 58, Math.PI - 0.52, 1.05, 'right'),
+    createFlipper(92, 162, 34, 0.38, -0.78, 'mini'),
   ];
 
   const plunger = {
-    x: W - 34,
-    y: H - 42,
-    laneTop: 108,
-    laneBottom: H - 42,
+    x: W - 35,
+    y: H - 62,
+    laneTop: 55,
+    laneBottom: H - 52,
   };
 
   const engine = Engine.create({
@@ -212,6 +232,9 @@ export function createTableGeometry() {
     },
   });
   engine.enableSleeping = false;
+  // Tighter solver for rubber / flipper contacts
+  engine.positionIterations = 8;
+  engine.velocityIterations = 6;
 
   const geo = {
     W,
@@ -237,16 +260,18 @@ export function createTableGeometry() {
 function buildMatterWorld(geo) {
   if (geo._matterReady) return;
   const { engine } = geo;
-  const statics = [];
+  const bodies = [];
 
   for (const seg of geo.walls) {
     const rest =
       seg.kind === 'sling'
         ? TUNING.rubberRestitution
         : seg.kind === 'ramp'
-          ? 0.55
-          : TUNING.wallRestitution;
-    statics.push(segBody(seg, rest));
+          ? 0.5
+          : seg.kind === 'lane'
+            ? 0.55
+            : TUNING.wallRestitution;
+    bodies.push(segBody(seg, rest));
   }
 
   for (const bumper of geo.bumpers) {
@@ -258,7 +283,7 @@ function buildMatterWorld(geo) {
     });
     bumper.body = b;
     b.plugin = { bumper };
-    statics.push(b);
+    bodies.push(b);
   }
 
   for (const t of geo.triggers) {
@@ -269,7 +294,7 @@ function buildMatterWorld(geo) {
     });
     t.body = b;
     b.plugin = { trigger: t };
-    statics.push(b);
+    bodies.push(b);
   }
 
   for (const target of geo.targets) {
@@ -278,11 +303,17 @@ function buildMatterWorld(geo) {
       target.y + target.h / 2,
       target.w,
       target.h,
-      { isStatic: true, restitution: 0.35, label: `target:${target.id}` }
+      {
+        isStatic: true,
+        restitution: 0.75,
+        friction: 0,
+        frictionStatic: 0,
+        label: `target:${target.id}`,
+      }
     );
     target.body = b;
     b.plugin = { target };
-    statics.push(b);
+    bodies.push(b);
   }
 
   for (const f of geo.flippers) {
@@ -291,9 +322,9 @@ function buildMatterWorld(geo) {
     const cx = f.pivotX + Math.cos(f.restAngle) * (w / 2);
     const cy = f.pivotY + Math.sin(f.restAngle) * (w / 2);
     const body = Bodies.rectangle(cx, cy, w, h, {
-      restitution: 0.12,
-      friction: 0.02,
-      density: 0.08,
+      restitution: TUNING.flipperRestitution,
+      friction: 0.04,
+      density: TUNING.flipperDensity,
       label: `flipper:${f.side}`,
       collisionFilter: { category: 0x0008, mask: 0x0001 },
     });
@@ -304,16 +335,16 @@ function buildMatterWorld(geo) {
       pointB: { x: f.pivotX, y: f.pivotY },
       length: 0,
       stiffness: 1,
-      damping: 0.05,
+      damping: 0.02,
     });
     f.body = body;
     f.constraint = constraint;
     body.plugin = { flipper: f, isFlipper: true };
-    statics.push(body);
+    bodies.push(body);
     Composite.add(engine.world, constraint);
   }
 
-  Composite.add(engine.world, statics);
+  Composite.add(engine.world, bodies);
 
   Events.on(engine, 'collisionStart', (ev) => {
     for (const pair of ev.pairs) handlePair(geo, pair, true);
@@ -359,7 +390,7 @@ function handlePair(geo, pair, isStart) {
         x: (nx / d) * TUNING.bumperKick,
         y: (ny / d) * TUNING.bumperKick,
       });
-      bumper.cooldown = 8;
+      bumper.cooldown = 6;
       events.push({ type: 'bumper', id: bumper.id, ball: ballBody.plugin?.ball });
     }
   }
@@ -373,17 +404,30 @@ function handlePair(geo, pair, isStart) {
     const d = Math.hypot(nx, ny) || 1;
     Body.applyForce(ballBody, ballBody.position, {
       x: (nx / d) * TUNING.slingKick,
-      y: (ny / d) * TUNING.slingKick * 0.55,
+      y: (ny / d) * TUNING.slingKick * 0.45 - TUNING.slingKick * 0.35,
     });
     events.push({ type: 'sling', ball: ballBody.plugin?.ball });
   }
 
   const flip = pick(pair, (b) => b.plugin?.isFlipper);
   if (flip && isBallLabel(flip.other) && isStart) {
+    const flipper = flip.hit.plugin.flipper;
+    const ballBody = flip.other;
+    const omega = flipper.body?.angularVelocity || 0;
+    // Bat impulse when swinging toward the ball (cradle release / slap save)
+    if (Math.abs(omega) > 0.06) {
+      const power = Math.min(1.8, Math.abs(omega) * 3.0) * TUNING.flipperBatImpulse;
+      // Drive toward table center-up from this flipper's side
+      const outward = flipper.side === 'right' || flipper.swing > 0 ? -1 : 1;
+      Body.applyForce(ballBody, ballBody.position, {
+        x: outward * power * 0.3,
+        y: -power * 1.15,
+      });
+    }
     events.push({
       type: 'flipper',
-      side: flip.hit.plugin.flipper.side,
-      ball: flip.other.plugin?.ball,
+      side: flipper.side,
+      ball: ballBody.plugin?.ball,
     });
   }
 
@@ -395,6 +439,9 @@ function handlePair(geo, pair, isStart) {
   const tgt = pick(pair, (b) => b.plugin?.target);
   if (tgt && isBallLabel(tgt.other) && isStart) {
     const target = tgt.hit.plugin.target;
+    const ballBody = tgt.other;
+    // Glance dump — keep standups from becoming a shelf
+    Body.applyForce(ballBody, ballBody.position, { x: 0.012, y: 0.018 });
     if (!target._hit) {
       target._hit = true;
       events.push({
@@ -402,7 +449,7 @@ function handlePair(geo, pair, isStart) {
         id: target.id,
         letter: target.letter,
         bank: target.bank,
-        ball: tgt.other.plugin?.ball,
+        ball: ballBody.plugin?.ball,
       });
     }
   }
@@ -437,21 +484,21 @@ function stepFlipperMatter(flipper) {
   while (diff < -Math.PI) diff += Math.PI * 2;
 
   const gain = flipper.pressed ? TUNING.flipperPower : TUNING.flipperReturn;
-  let omega = diff * gain * 1.8;
-  const maxO = TUNING.flipperMaxOmega * (flipper.pressed ? 1.15 : 0.75);
+  let omega = diff * gain * 2.2;
+  const maxO = TUNING.flipperMaxOmega * (flipper.pressed ? 1.25 : 0.85);
   omega = Math.max(-maxO, Math.min(maxO, omega));
 
-  if (Math.abs(diff) < 0.025) {
+  if (Math.abs(diff) < 0.018) {
     Body.setAngle(body, target);
     Body.setAngularVelocity(body, 0);
   } else {
     Body.setAngularVelocity(body, omega);
   }
 
-  if (body.angle < minA - 0.015) {
+  if (body.angle < minA - 0.012) {
     Body.setAngle(body, minA);
     Body.setAngularVelocity(body, Math.max(0, body.angularVelocity));
-  } else if (body.angle > maxA + 0.015) {
+  } else if (body.angle > maxA + 0.012) {
     Body.setAngle(body, maxA);
     Body.setAngularVelocity(body, Math.min(0, body.angularVelocity));
   }
@@ -465,7 +512,7 @@ export function stepFlipper(flipper, dt = 1) {
     const target = flipper.pressed
       ? flipper.restAngle + flipper.swing
       : flipper.restAngle;
-    const speed = flipper.pressed ? 0.45 : 0.25;
+    const speed = flipper.pressed ? 0.55 : 0.3;
     const diff = target - flipper.angle;
     const step = Math.sign(diff) * Math.min(Math.abs(diff), speed * dt);
     const prev = flipper.angle;
@@ -584,6 +631,72 @@ export function stepPhysics(world, dtSteps = 1) {
     for (const ball of balls) {
       if (!ball.active || ball.held) continue;
       syncBallFromBody(ball);
+
+      // Crest exit (one-shot gate): launch into PF left of the lane wall,
+      // then keep the ball from falling back into the open lane mouth.
+      if (ball.body && ball.x > TABLE_W - 60 && ball.y < 160 && ball.y > 40) {
+        if (!ball._crestExited && ball.vy >= -1.2) {
+          ball._crestExited = true;
+          Body.setPosition(ball.body, {
+            x: TABLE_W - 95,
+            y: Math.max(70, Math.min(ball.y, 120)),
+          });
+          Body.setVelocity(ball.body, { x: -7, y: 6.5 });
+          syncBallFromBody(ball);
+        } else if (!ball._crestExited && ball.vy < -1.2) {
+          Body.setVelocity(ball.body, {
+            x: Math.min(ball.vx, -2.5),
+            y: ball.vy,
+          });
+          syncBallFromBody(ball);
+        } else if (ball._crestExited) {
+          // One-way: push back out if re-entering the lane mouth
+          Body.setPosition(ball.body, {
+            x: Math.min(ball.x, TABLE_W - 70),
+            y: ball.y,
+          });
+          if (ball.vx > -2) {
+            Body.setVelocity(ball.body, {
+              x: -5,
+              y: Math.max(ball.vy, 3),
+            });
+          }
+          syncBallFromBody(ball);
+        }
+      }
+
+      // Soft velocity clamp — prevent tunneling without killing punch
+      const spd = Math.hypot(ball.vx, ball.vy);
+      if (spd > 28 && ball.body) {
+        const s = 28 / spd;
+        Body.setVelocity(ball.body, { x: ball.vx * s, y: ball.vy * s });
+        syncBallFromBody(ball);
+      }
+
+      // Anti-stick: break micro-stalls against standups / seams
+      if (
+        ball.body &&
+        Math.hypot(ball.vx, ball.vy) < 0.35 &&
+        ball.y > 180 &&
+        ball.y < TABLE_H - 100 &&
+        ball.x > 28 &&
+        ball.x < TABLE_W - 65
+      ) {
+        ball._stall = (ball._stall || 0) + 1;
+        if (ball._stall > 8) {
+          ball._stall = 0;
+          const dir = ball.x < TABLE_W / 2 ? 1 : -1;
+          Body.setPosition(ball.body, {
+            x: ball.x + dir * 10,
+            y: ball.y + 8,
+          });
+          Body.setVelocity(ball.body, { x: dir * 3.5, y: 4.5 });
+          syncBallFromBody(ball);
+        }
+      } else if (ball) {
+        ball._stall = 0;
+      }
+
       if (ball.y > geo.drainY) {
         ball.active = false;
         removeBallFromWorld(geo, ball);
@@ -619,6 +732,7 @@ export function launchFromPlunger(ball, geometry, pullNorm, powerFn) {
   const matterVy = -speed;
   ball.vx = 0;
   ball.vy = matterVy;
+  ball._crestExited = false;
   ensureBallBody(geometry, ball);
   Body.setPosition(ball.body, { x: ball.x, y: ball.y });
   Body.setVelocity(ball.body, { x: 0, y: matterVy });
@@ -635,6 +749,7 @@ export function placeBallInPlunger(ball, geometry) {
   ball.vy = 0;
   ball.held = true;
   ball.active = true;
+  ball._crestExited = false;
   ensureBallBody(geometry, ball);
   Body.setPosition(ball.body, { x: ball.x, y: ball.y });
   Body.setVelocity(ball.body, { x: 0, y: 0 });
