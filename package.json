@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "SniperD Pinball — snowboard-themed HTML5 pinball for sniperd.com",
+  "description": "SniperD Pinball \u2014 snowboard-themed HTML5 pinball for sniperd.com",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -12,11 +12,15 @@
     "test:hunt": "vitest run tests/integration/turbo-hunt.test.js",
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
-    "serve": "npx --yes serve -l 4173 ."
+    "serve": "npx --yes serve -l 4173 .",
+    "test:gate": "vitest run && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
     "jsdom": "^25.0.0",
     "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
