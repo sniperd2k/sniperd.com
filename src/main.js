@@ -1,6 +1,7 @@
 /**
  * SniperD — calm cinematic starfield: gentle swirl + rare drifting bodies.
  * Canvas 2D, ~60fps, mobile-friendly (Chrome + Safari).
+ * Pointer proximity gently repels nearby stars; they keep drifting away.
  */
 
 const canvas = document.getElementById('stars');
@@ -19,6 +20,12 @@ const NEBULAE = 4;
 const BODY_MEAN_INTERVAL = 28;
 const BODY_MIN_GAP = 14;
 
+/** Proximity mouse/touch repulsion (stars only; persist drift only). */
+const REPEL_RADIUS = 120;
+const REPEL_IMPULSE = 320; // base px/s added per second of contact at center
+const REPEL_VEL_DECAY = 0.55; // exponential decay rate (1/s) — slow drift fade
+const REPEL_DEPTH_BOOST = 0.35; // high-depth stars get a bit more push
+
 let w = 0;
 let h = 0;
 let dpr = 1;
@@ -33,6 +40,9 @@ let nextBodyIn = BODY_MEAN_INTERVAL * (0.6 + Math.random() * 0.8);
 let driftX = 0;
 let driftY = 0;
 let swirlAngle = 0;
+
+/** Active pointer in CSS pixels, or null when no pointer (idle / left). */
+let pointer = null;
 
 function rand(a, b) {
   return a + Math.random() * (b - a);
@@ -69,6 +79,12 @@ function spawnStars() {
         swirl: layer.swirl,
         hue: Math.random() < 0.12 ? rand(190, 230) : rand(0, 40),
         warm: Math.random() < 0.18,
+        // Free-flight after proximity impulse (do not return to swirl)
+        free: false,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
       });
     }
   }
@@ -160,25 +176,79 @@ function drawNebulae(dt) {
   }
 }
 
+function softWrap(x, y) {
+  const pad = 40;
+  let wx = x;
+  let wy = y;
+  if (wx < -pad) wx += w + pad * 2;
+  if (wx > w + pad) wx -= w + pad * 2;
+  if (wy < -pad) wy += h + pad * 2;
+  if (wy > h + pad) wy -= h + pad * 2;
+  return { x: wx, y: wy };
+}
+
+function swirlPosition(s) {
+  const a = s.angle + swirlAngle * s.depth * 0.15;
+  const ox = Math.cos(a) * s.radius + driftX * s.depth;
+  const oy = Math.sin(a) * s.radius + driftY * s.depth;
+  return softWrap(cx + ox, cy + oy);
+}
+
 function drawStars(time, dt) {
   swirlAngle += dt * 0.015;
   driftX += Math.sin(time * 0.03) * 0.15 * dt * 60;
   driftY += Math.cos(time * 0.022) * 0.12 * dt * 60;
 
-  for (const s of stars) {
-    s.angle += s.swirl * dt;
-    const a = s.angle + swirlAngle * s.depth * 0.15;
-    const ox = Math.cos(a) * s.radius + driftX * s.depth;
-    const oy = Math.sin(a) * s.radius + driftY * s.depth;
-    let x = cx + ox;
-    let y = cy + oy;
+  const r2 = REPEL_RADIUS * REPEL_RADIUS;
+  const decay = Math.exp(-REPEL_VEL_DECAY * dt);
+  const hasPtr = pointer != null;
 
-    // Soft wrap so the field feels endless without popping
-    const pad = 40;
-    if (x < -pad) x += w + pad * 2;
-    if (x > w + pad) x -= w + pad * 2;
-    if (y < -pad) y += h + pad * 2;
-    if (y > h + pad) y -= h + pad * 2;
+  for (const s of stars) {
+    let x;
+    let y;
+
+    if (s.free) {
+      s.vx *= decay;
+      s.vy *= decay;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      const wrapped = softWrap(s.x, s.y);
+      s.x = wrapped.x;
+      s.y = wrapped.y;
+      x = s.x;
+      y = s.y;
+    } else {
+      s.angle += s.swirl * dt;
+      const pos = swirlPosition(s);
+      x = pos.x;
+      y = pos.y;
+    }
+
+    // Proximity-only impulse: stars near pointer get pushed and keep drifting
+    if (hasPtr) {
+      const dx = x - pointer.x;
+      const dy = y - pointer.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < r2 && d2 > 0.0001) {
+        const d = Math.sqrt(d2);
+        const falloff = 1 - d / REPEL_RADIUS;
+        const boost = 1 + s.depth * REPEL_DEPTH_BOOST;
+        const impulse = REPEL_IMPULSE * falloff * falloff * boost * dt;
+        const nx = dx / d;
+        const ny = dy / d;
+        if (!s.free) {
+          s.free = true;
+          s.x = x;
+          s.y = y;
+          s.vx = 0;
+          s.vy = 0;
+        }
+        s.vx += nx * impulse;
+        s.vy += ny * impulse;
+        x = s.x;
+        y = s.y;
+      }
+    }
 
     const tw = 0.65 + 0.35 * Math.sin(time * s.twinkle + s.twPhase);
     const alpha = s.alpha * tw;
@@ -191,7 +261,7 @@ function drawStars(time, dt) {
     ctx.arc(x, y, s.size, 0, Math.PI * 2);
     ctx.fill();
 
-    // Occasional soft glow on brighter stars
+    // Occasional soft glow on brighter stars (star glow only — no cursor chrome)
     if (s.size > 1.4 && alpha > 0.55) {
       ctx.fillStyle = `hsla(210, 60%, 80%, ${alpha * 0.12})`;
       ctx.beginPath();
@@ -306,6 +376,27 @@ function drawBodies() {
     else drawGalaxy(b);
   }
 }
+
+function setPointerFromEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  pointer = {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
+  };
+}
+
+function clearPointer() {
+  pointer = null;
+}
+
+canvas.addEventListener('pointerdown', setPointerFromEvent);
+canvas.addEventListener('pointermove', setPointerFromEvent);
+canvas.addEventListener('pointerup', (e) => {
+  // Touch lift ends force; mouse hover keeps tracking until leave
+  if (e.pointerType !== 'mouse') clearPointer();
+});
+canvas.addEventListener('pointercancel', clearPointer);
+canvas.addEventListener('pointerleave', clearPointer);
 
 let lastTs = performance.now();
 

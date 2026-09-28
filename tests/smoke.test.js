@@ -51,4 +51,21 @@ describe('stars page smoke', () => {
     expect(main).not.toContain('flipper');
     expect(main).not.toContain('playfield');
   });
+
+  it('proximity-only star repulsion with persistent drift (no spring / no cursor glow)', () => {
+    const main = readFileSync(join(root, 'src/main.js'), 'utf8');
+    expect(main).toMatch(/REPEL_RADIUS\s*=\s*1[0-4]\d/);
+    expect(main).toMatch(/REPEL_IMPULSE/);
+    expect(main).toMatch(/REPEL_VEL_DECAY/);
+    expect(main).toContain("addEventListener('pointermove'");
+    expect(main).toContain("addEventListener('pointerleave'");
+    expect(main).toMatch(/s\.free\s*=\s*true/);
+    expect(main).not.toMatch(/springBack|spring-back|Hooke/i);
+    expect(main).not.toMatch(/cursor.?glow|pointer.?glow|cursorGlow/i);
+    // Bodies (planets/galaxies) never read pointer
+    const bodyFns = main.match(/function (?:drawPlanet|drawGalaxy|updateBodies|spawnBody)[\s\S]*?(?=\nfunction |\nlet lastTs|\ncanvas\.addEventListener)/g) || [];
+    for (const fn of bodyFns) {
+      expect(fn).not.toMatch(/\bpointer\b/);
+    }
+  });
 });
