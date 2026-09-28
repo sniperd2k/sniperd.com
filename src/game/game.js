@@ -1,5 +1,5 @@
 /**
- * SniperD Pinball — Arcade Neon game controller (logic + HUD state).
+ * SniperD Pinball — Pixel Brick game controller (logic + HUD state).
  * Canvas-free core so tests can drive it without rendering.
  * Missions / multiball deferred; basic score + N-ball only.
  */
@@ -67,7 +67,7 @@ export function createGame(opts = {}) {
     board: createLetterBank('BOARD'),
     lodge: createLetterBank('LODGE'),
     modes: createModeState(),
-    message: 'PULL PLUNGER — Arcade Neon',
+    message: 'PULL PLUNGER — Pixel Brick',
     messageTimer: 180,
     triggerCooldown: Object.create(null),
     frame: 0,

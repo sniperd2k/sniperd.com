@@ -3,7 +3,7 @@ import { createSfx, PRESETS } from '../../src/game/sfx.js';
 import { createGame, tick, tryLaunch, drainSfx, inject } from '../../src/game/game.js';
 
 describe('SFX synth', () => {
-  it('exposes expected Arcade Neon presets', () => {
+  it('exposes expected Pixel Brick chiptune presets', () => {
     const sfx = createSfx({ muted: true });
     for (const name of [
       'flipper',

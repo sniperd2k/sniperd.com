@@ -138,7 +138,7 @@ describe('Matter.js fixed-step physics', () => {
     expect(ball.active).toBe(false);
   });
 
-  it('layout includes Arcade Neon essentials', () => {
+  it('layout includes Pixel Brick essentials', () => {
     const geo = createTableGeometry();
     expect(geo.W).toBe(TABLE_W);
     expect(geo.H).toBe(TABLE_H);

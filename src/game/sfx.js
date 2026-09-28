@@ -1,22 +1,23 @@
 /**
- * Web Audio synth SFX — original SniperD Arcade Neon banks (no sampled assets).
+ * Web Audio chiptune SFX — original SniperD PIXEL BRICK banks.
+ * Square / pulse / noise only (no ripped Nintendo audio).
  * Unlock on first user gesture. Mute/gate for headless tests.
  */
 
 const PRESETS = {
-  flipper: { type: 'square', freq: 210, freqEnd: 95, dur: 0.055, gain: 0.11 },
-  bumper: { type: 'triangle', freq: 480, freqEnd: 160, dur: 0.08, gain: 0.13 },
-  ramp: { type: 'sawtooth', freq: 240, freqEnd: 560, dur: 0.16, gain: 0.07 },
-  plunger: { type: 'square', freq: 100, freqEnd: 45, dur: 0.11, gain: 0.15 },
-  saucer: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
-  // Kept for API / hunt / older cues — Arcade Neon synth tones
-  treeWell: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
-  multiball: { type: 'square', freq: 300, freqEnd: 600, dur: 0.28, gain: 0.1 },
-  scoring: { type: 'sine', freq: 720, freqEnd: 960, dur: 0.09, gain: 0.08 },
-  spark: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.12, gain: 0.03 },
-  snow: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.12, gain: 0.03 },
-  hum: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.015 },
-  wind: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.015 },
+  flipper: { type: 'square', freq: 180, freqEnd: 70, dur: 0.045, gain: 0.12 },
+  bumper: { type: 'square', freq: 520, freqEnd: 140, dur: 0.07, gain: 0.14 },
+  ramp: { type: 'square', freq: 200, freqEnd: 640, dur: 0.14, gain: 0.08 },
+  plunger: { type: 'square', freq: 90, freqEnd: 36, dur: 0.1, gain: 0.16 },
+  saucer: { type: 'square', freq: 320, freqEnd: 160, dur: 0.18, gain: 0.12 },
+  // Kept for API / hunt / older cues — chiptune aliases
+  treeWell: { type: 'square', freq: 320, freqEnd: 160, dur: 0.18, gain: 0.12 },
+  multiball: { type: 'square', freq: 280, freqEnd: 720, dur: 0.26, gain: 0.1 },
+  scoring: { type: 'square', freq: 660, freqEnd: 990, dur: 0.08, gain: 0.09 },
+  spark: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.09, gain: 0.035 },
+  snow: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.09, gain: 0.035 },
+  hum: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.012 },
+  wind: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.012 },
 };
 
 export function createSfx(opts = {}) {
@@ -104,7 +105,7 @@ export function createSfx(opts = {}) {
     const now = ctx.currentTime;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(preset.gain, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(preset.gain, now + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, now + preset.dur);
     g.connect(state.master);
 
@@ -112,15 +113,17 @@ export function createSfx(opts = {}) {
       const src = ctx.createBufferSource();
       src.buffer = makeNoiseBuffer(ctx, preset.dur + 0.05);
       const filter = ctx.createBiquadFilter();
-      filter.type = name === 'hum' || name === 'wind' ? 'lowpass' : 'highpass';
-      filter.frequency.value = name === 'hum' || name === 'wind' ? 280 : 3200;
+      filter.type = name === 'hum' || name === 'wind' ? 'lowpass' : 'bandpass';
+      filter.frequency.value = name === 'hum' || name === 'wind' ? 240 : 2800;
+      filter.Q.value = name === 'hum' || name === 'wind' ? 0.4 : 1.2;
       src.connect(filter);
       filter.connect(g);
       src.start(now);
       src.stop(now + preset.dur + 0.02);
     } else {
+      // Chiptune square / pulse bloop
       const osc = ctx.createOscillator();
-      osc.type = preset.type;
+      osc.type = 'square';
       osc.frequency.setValueAtTime(preset.freq, now);
       osc.frequency.exponentialRampToValueAtTime(Math.max(20, preset.freqEnd), now + preset.dur);
       osc.connect(g);
@@ -138,10 +141,10 @@ export function createSfx(opts = {}) {
     src.loop = true;
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 220;
-    filter.Q.value = 0.5;
+    filter.frequency.value = 180;
+    filter.Q.value = 0.6;
     const g = ctx.createGain();
-    g.gain.value = 0.014;
+    g.gain.value = 0.01;
     src.connect(filter);
     filter.connect(g);
     g.connect(state.master);

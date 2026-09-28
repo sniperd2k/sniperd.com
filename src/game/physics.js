@@ -1,6 +1,6 @@
 /**
  * SniperD Pinball physics — Matter.js, fixed 60 Hz.
- * Original "Arcade Neon" woodrail playfield (Italian-bottom classic).
+ * Original "Pixel Brick" 8-bit playfield (Italian-bottom classic).
  * No third-party IP: no Williams/Bally/Gottlieb/Stern/MS Space Cadet assets.
  */
 
@@ -21,7 +21,7 @@ export const FIXED_DT_MS = 1000 / PHYSICS_HZ;
 export const FIXED_DT = FIXED_DT_MS / 1000;
 
 /**
- * Playable Arcade Neon feel:
+ * Playable Pixel Brick feel:
  * strong hinged flippers (cradle/aim), punchy jets/slings,
  * lively ball that still drains cleanly.
  */
@@ -129,7 +129,7 @@ function segBody(seg, restitution) {
 }
 
 /**
- * Original Arcade Neon woodrail layout — portrait Italian-bottom classic.
+ * Original Pixel Brick Italian-bottom layout — portrait Italian-bottom classic.
  * OPEN plunger exit (no dead-end cap), dual flippers + mini,
  * out/inlanes, slings, jet cluster, standup SNIPE bank,
  * left ramp + upper orbit / loop.
@@ -163,7 +163,7 @@ export function createTableGeometry() {
     createSegment(W - 18, H - 52, W - 18, 42, 'lane'),
     createSegment(W - 54, H - 52, W - 18, H - 52, 'lane'),
 
-    // Left neon ramp (two rails)
+    // Left pixel ramp (two rails)
     createSegment(36, 220, 102, 78, 'ramp'),
     createSegment(52, 228, 118, 88, 'ramp'),
     createSegment(102, 78, 118, 88, 'ramp'),

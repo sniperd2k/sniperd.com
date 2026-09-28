@@ -1,5 +1,5 @@
 /**
- * SniperD Pinball bootstrap — full-screen canvas + SFX + turbo debug API.
+ * SniperD Pinball bootstrap — Pixel Brick — full-screen canvas + chiptune SFX + turbo debug API.
  */
 import { createGame, tick, tryLaunch, getHud, inspectState, inject, drainSfx, TABLE_W, TABLE_H } from './game/game.js';
 import { createInputState, bindInput, consumeLaunch } from './game/input.js';
@@ -30,7 +30,7 @@ function flushSfx(physEvents, extras = {}) {
 
 /** Public test/debug API */
 window.__SNIPERD__ = {
-  version: '1.5.0',
+  version: '1.6.0',
   getState: () => inspectState(state),
   getHud: () => getHud(state),
   inject: (patch) => inject(state, patch),
