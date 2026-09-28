@@ -30,7 +30,7 @@ function flushSfx(physEvents, extras = {}) {
 
 /** Public test/debug API */
 window.__SNIPERD__ = {
-  version: '1.1.0',
+  version: '1.2.0',
   getState: () => inspectState(state),
   getHud: () => getHud(state),
   inject: (patch) => inject(state, patch),

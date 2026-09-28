@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>SniperD Pinball</title>
   <meta name="description" content="SniperD Pinball — snowboard-themed HTML5 pinball. Flip, plunge, and chase Powder Multiball." />
-  <meta name="theme-color" content="#0a1628" />
+  <meta name="theme-color" content="#1a1408" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="canonical" href="https://sniperd.com/" />
@@ -20,11 +20,13 @@
 </script>
 
   <link rel="stylesheet" href="src/styles.css" />
+  <!-- Vendored Matter.js (UMD) — required before ES modules -->
+  <script src="assets/vendor/matter.min.js"></script>
 </head>
 <body>
   <canvas id="game" width="390" height="844" aria-label="SniperD Pinball playfield"></canvas>
   <noscript>
-    <main style="color:#9ad0ff;font-family:sans-serif;padding:2rem;text-align:center">
+    <main style="color:#f0e6c8;font-family:sans-serif;padding:2rem;text-align:center">
       <h1>SniperD Pinball</h1>
       <p>JavaScript is required to play.</p>
     </main>

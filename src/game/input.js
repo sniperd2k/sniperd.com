@@ -31,10 +31,10 @@ export function bindInput(canvas, input, opts = {}) {
     if (e.cancelable) e.preventDefault();
     const p = getPos(e);
     if (!p) return;
-    const mid = canvas.width / 2;
+    const w = canvas.width;
     // Plunger zone: right edge lower third
     const inPlunger =
-      p.x > canvas.width * 0.82 && p.y > canvas.height * 0.55;
+      p.x > w * 0.82 && p.y > canvas.height * 0.55;
     if (inPlunger) {
       input.plungerPulling = true;
       input.plungerStartY = p.y;
@@ -42,7 +42,15 @@ export function bindInput(canvas, input, opts = {}) {
       input.plungerPull = 0;
       return;
     }
-    if (p.x < mid) input.left = true;
+    // Side-touch flippers INSET from edges (not edge-flush)
+    // Left zone ~12%–45%, right zone ~55%–88% of width
+    const leftLo = w * 0.12;
+    const leftHi = w * 0.45;
+    const rightLo = w * 0.55;
+    const rightHi = w * 0.88;
+    if (p.x >= leftLo && p.x <= leftHi) input.left = true;
+    else if (p.x >= rightLo && p.x <= rightHi) input.right = true;
+    else if (p.x < w / 2) input.left = true; // fallback upper/mid
     else input.right = true;
   };
 
@@ -73,7 +81,10 @@ export function bindInput(canvas, input, opts = {}) {
         const rect = canvas.getBoundingClientRect();
         const t = e.touches[i];
         const x = ((t.clientX - rect.left) / rect.width) * canvas.width;
-        if (x < canvas.width / 2) input.left = true;
+        const w = canvas.width;
+        if (x >= w * 0.12 && x <= w * 0.45) input.left = true;
+        else if (x >= w * 0.55 && x <= w * 0.88) input.right = true;
+        else if (x < w / 2) input.left = true;
         else input.right = true;
       }
     } else {

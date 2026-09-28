@@ -1,9 +1,9 @@
 {
   "name": "sniperd-pinball",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
-  "description": "SniperD Pinball \u2014 snowboard-themed HTML5 pinball for sniperd.com",
+  "description": "SniperD Pinball — snowboard-themed HTML5 pinball for sniperd.com",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,5 +22,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0"
   }
 }

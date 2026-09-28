@@ -1,10 +1,28 @@
 /**
- * Canvas renderer for SniperD Pinball — snowboard machine look.
+ * Canvas renderer — mustard / ice / lodge pinball machine look.
  */
 
 import { TABLE_W, TABLE_H } from './physics.js';
 import { drawParticles } from './particles.js';
 import { formatScore } from './scoring.js';
+
+const C = {
+  cabinet0: '#1a1408',
+  cabinet1: '#2a1f0e',
+  deck0: '#3d4a38',
+  deck1: '#5a6e52',
+  deck2: '#2c3828',
+  rail: '#d4c48a',
+  mustard: '#d4a017',
+  mustardLit: '#f0c84a',
+  ice: '#a8d4e8',
+  iceBright: '#e8f6ff',
+  lodge: '#8b4513',
+  lodgeLit: '#c4783a',
+  ink: '#1a1208',
+  dmdBg: 'rgba(10,8,4,0.72)',
+  dmdText: '#f0e6c0',
+};
 
 export function resizeCanvas(canvas) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -33,11 +51,10 @@ export function drawFrame(ctx, state, viewW, viewH, input) {
   ctx.save();
   ctx.clearRect(0, 0, viewW, viewH);
 
-  // cabinet backdrop
   const g = ctx.createLinearGradient(0, 0, 0, viewH);
-  g.addColorStop(0, '#0a1628');
-  g.addColorStop(0.5, '#12304a');
-  g.addColorStop(1, '#071018');
+  g.addColorStop(0, C.cabinet0);
+  g.addColorStop(0.45, C.cabinet1);
+  g.addColorStop(1, '#0c0a06');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, viewW, viewH);
 
@@ -57,98 +74,118 @@ export function drawFrame(ctx, state, viewW, viewH, input) {
 
 function drawPlayfield(ctx, state) {
   const geo = state.geometry;
-  // wood/snow deck
   const deck = ctx.createLinearGradient(0, 0, 0, TABLE_H);
-  deck.addColorStop(0, '#1a3a55');
-  deck.addColorStop(0.35, '#24506e');
-  deck.addColorStop(1, '#152838');
+  deck.addColorStop(0, C.deck0);
+  deck.addColorStop(0.4, C.deck1);
+  deck.addColorStop(1, C.deck2);
   roundRect(ctx, 16, 36, TABLE_W - 32, TABLE_H - 48, 18);
   ctx.fillStyle = deck;
   ctx.fill();
-  ctx.strokeStyle = '#8ec8e8';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = C.rail;
+  ctx.lineWidth = 4;
   ctx.stroke();
 
-  // mountain art
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  // lodge wood grain hint
+  ctx.strokeStyle = 'rgba(80,50,20,0.25)';
+  ctx.lineWidth = 1;
+  for (let y = 60; y < TABLE_H - 40; y += 28) {
+    ctx.beginPath();
+    ctx.moveTo(28, y);
+    ctx.lineTo(TABLE_W - 28, y + 6);
+    ctx.stroke();
+  }
+
+  // mountain / ice silhouette
+  ctx.fillStyle = 'rgba(200,230,255,0.10)';
   ctx.beginPath();
-  ctx.moveTo(40, 200);
-  ctx.lineTo(120, 80);
-  ctx.lineTo(200, 180);
-  ctx.lineTo(260, 100);
-  ctx.lineTo(320, 200);
+  ctx.moveTo(40, 210);
+  ctx.lineTo(130, 75);
+  ctx.lineTo(200, 190);
+  ctx.lineTo(270, 90);
+  ctx.lineTo(330, 210);
   ctx.closePath();
   ctx.fill();
 
-  // walls
-  ctx.strokeStyle = '#cfefff';
-  ctx.lineWidth = 3;
   ctx.lineCap = 'round';
   for (const seg of geo.walls) {
     ctx.beginPath();
     ctx.moveTo(seg.x1, seg.y1);
     ctx.lineTo(seg.x2, seg.y2);
-    if (seg.kind === 'ramp') ctx.strokeStyle = '#7fd0ff';
-    else if (seg.kind === 'lane') ctx.strokeStyle = '#ffd27a';
-    else ctx.strokeStyle = '#b8dceb';
+    if (seg.kind === 'ramp') {
+      ctx.strokeStyle = C.ice;
+      ctx.lineWidth = 4;
+    } else if (seg.kind === 'lane') {
+      ctx.strokeStyle = C.mustard;
+      ctx.lineWidth = 3;
+    } else if (seg.kind === 'sling') {
+      ctx.strokeStyle = '#e8b84a';
+      ctx.lineWidth = 5;
+    } else if (seg.kind === 'orbit') {
+      ctx.strokeStyle = '#9ec8e0';
+      ctx.lineWidth = 3;
+    } else if (seg.kind === 'fan') {
+      ctx.strokeStyle = 'rgba(212,192,138,0.7)';
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = C.rail;
+      ctx.lineWidth = 3;
+    }
     ctx.stroke();
   }
 
-  // bumpers
   for (const b of geo.bumpers) {
     const glow = b.cooldown > 0;
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fillStyle = glow ? '#fff6a8' : '#5ec8ff';
+    ctx.fillStyle = glow ? C.mustardLit : C.ice;
     ctx.fill();
-    ctx.strokeStyle = '#eaf8ff';
+    ctx.strokeStyle = C.iceBright;
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = '#0a2030';
+    ctx.fillStyle = C.ink;
     ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('❄', b.x, b.y + 3);
   }
 
-  // targets BOARD / LODGE
   for (const t of geo.targets) {
-    const bank = t.bank === 'BOARD' ? state.board : state.lodge;
-    const idx = bank.letters.indexOf(t.letter);
-    // find matching unlit index roughly by id order — use letter lit map
-    let lit = false;
-    for (let i = 0; i < bank.letters.length; i++) {
-      if (bank.letters[i] === t.letter && bank.lit[i]) {
-        // approximate: light if any matching letter lit; fine for visual
-        lit = true;
-        break;
-      }
-    }
-    // better: map by position in bank via target order
-    lit = isTargetLit(state, t);
-    ctx.fillStyle = lit ? '#ffe566' : '#2a4a62';
+    const lit = isTargetLit(state, t);
+    ctx.fillStyle = lit ? C.mustardLit : (t.bank === 'LODGE' ? C.lodge : '#3a3420');
     ctx.fillRect(t.x, t.y, t.w, t.h);
-    ctx.strokeStyle = '#dff3ff';
+    ctx.strokeStyle = lit ? '#fff2b0' : C.rail;
     ctx.strokeRect(t.x, t.y, t.w, t.h);
-    ctx.fillStyle = lit ? '#203040' : '#d6eefc';
+    ctx.fillStyle = lit ? C.ink : C.iceBright;
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(t.letter, t.x + t.w / 2, t.y + 8);
+    ctx.fillText(t.letter, t.x + t.w / 2, t.y + 9);
   }
 
-  // feature labels / scoops
-  drawScoop(ctx, geo.triggers.find((t) => t.id === 'chairlift_scoop'), 'CHAIRLIFT', '#ffcc66');
-  drawScoop(ctx, geo.triggers.find((t) => t.id === 'tree_well'), state.treeWellLit ? 'TREE 5×' : 'TREE WELL', state.treeWellLit ? '#7dffb0' : '#8ecfff');
-  drawScoop(ctx, geo.triggers.find((t) => t.id === 'vault'), state.modes.lodgeOpen ? 'VAULT OPEN' : 'VAULT', state.modes.lodgeOpen ? '#ff8ad8' : '#c9a0ff');
-  drawScoop(ctx, geo.triggers.find((t) => t.id === 'powder_plus_exit'), 'POWDER+', '#a8e6ff');
-  drawScoop(ctx, geo.triggers.find((t) => t.id === 'pipe_exit'), 'PIPE', '#9ad0ff');
+  drawScoop(ctx, geo.triggers.find((t) => t.id === 'chairlift_scoop'), 'CHAIRLIFT', C.mustard);
+  drawScoop(
+    ctx,
+    geo.triggers.find((t) => t.id === 'tree_well'),
+    state.treeWellLit ? 'TREE 5×' : 'TREE WELL',
+    state.treeWellLit ? '#7dffb0' : C.ice
+  );
+  drawScoop(
+    ctx,
+    geo.triggers.find((t) => t.id === 'vault'),
+    state.modes.lodgeOpen ? 'VAULT OPEN' : 'LODGE VAULT',
+    state.modes.lodgeOpen ? C.lodgeLit : '#c9a0ff'
+  );
+  drawScoop(ctx, geo.triggers.find((t) => t.id === 'powder_plus_exit'), 'POWDER+', C.iceBright);
+  drawScoop(ctx, geo.triggers.find((t) => t.id === 'pipe_exit'), 'PIPE', C.ice);
 
-  // title ribbon
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(50, 48, TABLE_W - 100, 22);
-  ctx.fillStyle = '#e8f7ff';
+  // backglass-style title ribbon
+  ctx.fillStyle = 'rgba(20,12,4,0.55)';
+  ctx.fillRect(44, 48, TABLE_W - 88, 24);
+  ctx.strokeStyle = C.mustard;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(44, 48, TABLE_W - 88, 24);
+  ctx.fillStyle = C.dmdText;
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('SNIPERD  ·  PINBALL', TABLE_W / 2, 64);
+  ctx.fillText('SNIPERD  ·  SNOWBOARD PINBALL', TABLE_W / 2, 65);
 }
 
 function isTargetLit(state, t) {
@@ -162,7 +199,7 @@ function drawScoop(ctx, t, label, color) {
   if (!t) return;
   ctx.beginPath();
   ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.fill();
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
@@ -177,14 +214,14 @@ function drawFlippers(ctx, flippers) {
   for (const f of flippers) {
     const tipX = f.pivotX + Math.cos(f.angle) * f.length;
     const tipY = f.pivotY + Math.sin(f.angle) * f.length;
-    ctx.strokeStyle = f.pressed ? '#fff1a0' : '#f0f6ff';
-    ctx.lineWidth = f.side === 'mini' ? 7 : 10;
+    ctx.strokeStyle = f.pressed ? C.mustardLit : C.iceBright;
+    ctx.lineWidth = f.side === 'mini' ? 7 : 11;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(f.pivotX, f.pivotY);
     ctx.lineTo(tipX, tipY);
     ctx.stroke();
-    ctx.fillStyle = '#8ecfff';
+    ctx.fillStyle = C.mustard;
     ctx.beginPath();
     ctx.arc(f.pivotX, f.pivotY, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -196,12 +233,12 @@ function drawBalls(ctx, balls) {
     if (!b.active) continue;
     const grd = ctx.createRadialGradient(b.x - 2, b.y - 2, 1, b.x, b.y, b.r);
     grd.addColorStop(0, '#ffffff');
-    grd.addColorStop(1, '#9ec4d8');
+    grd.addColorStop(1, '#c0d0d8');
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = grd;
     ctx.fill();
-    ctx.strokeStyle = '#dfefff';
+    ctx.strokeStyle = '#eef6ff';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -211,11 +248,11 @@ function drawPlunger(ctx, state, input) {
   const p = state.geometry.plunger;
   const pull = input?.plungerPulling ? input.plungerPull : input?._launch || 0;
   const travel = pull * 50;
-  ctx.fillStyle = '#8899aa';
+  ctx.fillStyle = '#6a6050';
   ctx.fillRect(p.x - 4, p.y - 20 + travel, 8, 50);
-  ctx.fillStyle = '#ff6b4a';
+  ctx.fillStyle = '#c45a2a';
   ctx.fillRect(p.x - 7, p.y + 28 + travel, 14, 10);
-  ctx.fillStyle = '#ffd7cc';
+  ctx.fillStyle = C.mustardLit;
   ctx.font = 'bold 8px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('PULL', p.x, p.y + 52 + travel);
@@ -228,84 +265,92 @@ function drawHud(ctx, state, viewW, viewH) {
     msg: state.messageTimer > 0 ? state.message : '',
   };
 
-  ctx.fillStyle = 'rgba(0,10,20,0.55)';
-  ctx.fillRect(0, 0, viewW, 56);
-  ctx.fillStyle = '#eaf8ff';
+  // DMD-style score strip
+  ctx.fillStyle = C.dmdBg;
+  ctx.fillRect(0, 0, viewW, 58);
+  ctx.strokeStyle = 'rgba(212,160,23,0.35)';
+  ctx.strokeRect(0, 0, viewW, 58);
+
+  ctx.fillStyle = C.dmdText;
   ctx.font = `bold ${Math.max(16, Math.floor(viewW * 0.055))}px monospace`;
   ctx.textAlign = 'left';
   ctx.fillText(hud.score, 12, 28);
   ctx.font = '12px sans-serif';
-  ctx.fillStyle = '#9ad0ff';
-  ctx.fillText(`BALLS ${hud.balls}`, 12, 46);
+  ctx.fillStyle = C.mustard;
+  ctx.fillText(`BALLS ${hud.balls}`, 12, 48);
 
-  // letter banks
   drawLetters(ctx, 'SNOW', state.snow.lit, viewW - 12, 18, true);
   drawLetters(ctx, 'BOARD', state.board.lit, viewW - 12, 34, true);
   drawLetters(ctx, 'LODGE', state.lodge.lit, viewW - 12, 50, true);
 
   if (state.modes.multiball) {
-    ctx.fillStyle = '#ff8ad8';
+    ctx.fillStyle = C.lodgeLit;
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('❄ POWDER MULTIBALL ❄', viewW / 2, 72);
+    ctx.fillText('❄ POWDER MULTIBALL ❄', viewW / 2, 74);
   }
 
   if (hud.msg) {
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillStyle = 'rgba(20,12,4,0.7)';
     const tw = Math.min(viewW - 24, 360);
     ctx.fillRect((viewW - tw) / 2, viewH * 0.42, tw, 36);
-    ctx.fillStyle = '#fff6c8';
+    ctx.strokeStyle = C.mustard;
+    ctx.strokeRect((viewW - tw) / 2, viewH * 0.42, tw, 36);
+    ctx.fillStyle = C.mustardLit;
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(hud.msg, viewW / 2, viewH * 0.42 + 23);
   }
 
   if (state.gameOver) {
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillStyle = 'rgba(10,8,4,0.75)';
     ctx.fillRect(0, 0, viewW, viewH);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = C.dmdText;
     ctx.font = 'bold 28px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('GAME OVER', viewW / 2, viewH / 2 - 10);
     ctx.font = '16px sans-serif';
-    ctx.fillStyle = '#9ad0ff';
+    ctx.fillStyle = C.mustard;
     ctx.fillText(hud.score, viewW / 2, viewH / 2 + 20);
     ctx.fillText('Pull plunger / Space to restart', viewW / 2, viewH / 2 + 48);
   }
 }
 
-function drawLetters(ctx, word, lit, right, y, alignRight) {
+function drawLetters(ctx, word, lit, right, y) {
   const chars = word.split('');
   ctx.font = 'bold 11px monospace';
-  ctx.textAlign = alignRight ? 'right' : 'left';
+  ctx.textAlign = 'right';
   let x = right;
   for (let i = chars.length - 1; i >= 0; i--) {
-    ctx.fillStyle = lit[i] ? '#ffe566' : '#3a5568';
+    ctx.fillStyle = lit[i] ? C.mustardLit : '#4a4030';
     ctx.fillText(chars[i], x, y);
     x -= 12;
   }
 }
 
 function drawTouchHints(ctx, viewW, viewH, input) {
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  // Inset flipper zones (match input.js)
+  const leftLo = viewW * 0.12;
+  const leftHi = viewW * 0.45;
+  const rightLo = viewW * 0.55;
+  const rightHi = viewW * 0.88;
+  ctx.strokeStyle = 'rgba(240,230,192,0.08)';
   ctx.setLineDash([6, 6]);
-  ctx.beginPath();
-  ctx.moveTo(viewW / 2, viewH * 0.7);
-  ctx.lineTo(viewW / 2, viewH - 8);
-  ctx.stroke();
+  ctx.strokeRect(leftLo, viewH * 0.62, leftHi - leftLo, viewH * 0.35);
+  ctx.strokeRect(rightLo, viewH * 0.62, rightHi - rightLo, viewH * 0.35);
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillStyle = 'rgba(240,230,192,0.22)';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('LEFT', viewW * 0.25, viewH - 10);
-  ctx.fillText('RIGHT', viewW * 0.65, viewH - 10);
+  ctx.fillText('LEFT', (leftLo + leftHi) / 2, viewH - 10);
+  ctx.fillText('RIGHT', (rightLo + rightHi) / 2, viewH - 10);
   if (input?.left) {
-    ctx.fillStyle = 'rgba(255,230,120,0.12)';
-    ctx.fillRect(0, viewH * 0.55, viewW / 2, viewH * 0.45);
+    ctx.fillStyle = 'rgba(212,160,23,0.12)';
+    ctx.fillRect(leftLo, viewH * 0.55, leftHi - leftLo, viewH * 0.45);
   }
   if (input?.right) {
-    ctx.fillStyle = 'rgba(255,230,120,0.12)';
-    ctx.fillRect(viewW / 2, viewH * 0.55, viewW / 2, viewH * 0.45);
+    ctx.fillStyle = 'rgba(212,160,23,0.12)';
+    ctx.fillRect(rightLo, viewH * 0.55, rightHi - rightLo, viewH * 0.45);
   }
 }
 

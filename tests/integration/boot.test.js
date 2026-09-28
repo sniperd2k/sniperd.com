@@ -25,13 +25,10 @@ describe('integration: boot and cycles', () => {
     const g = createGame({ seed: 7 });
     tryLaunch(g, 1);
     expect(g.ballInPlay).toBe(true);
-    // force drain
-    const ball = g.ballsList[0];
-    ball.x = 180;
-    ball.y = g.geometry.drainY + 2;
-    ball.vx = 0;
-    ball.vy = 2;
-    ball.held = false;
+    // force drain via inject (syncs Matter body)
+    inject(g, {
+      ball: { x: 180, y: g.geometry.drainY + 2, vx: 0, vy: 2, held: false, active: true },
+    });
     tick(g);
     expect(g.ballInPlay).toBe(false);
     expect(g.balls).toBe(2);
@@ -48,7 +45,7 @@ describe('integration: boot and cycles', () => {
     const right = g.geometry.flippers.find((f) => f.side === 'right');
     expect(left.pressed).toBe(true);
     expect(right.pressed).toBe(true);
-    tick(g, input);
+    for (let i = 0; i < 6; i++) tick(g, input);
     expect(left.angle).not.toBe(left.restAngle);
   });
 
@@ -57,7 +54,7 @@ describe('integration: boot and cycles', () => {
     tryLaunch(g, 1);
     const bumper = g.geometry.bumpers[0];
     inject(g, {
-      ball: { x: bumper.x, y: bumper.y - bumper.r - 8, vx: 0, vy: 6, held: false, active: true },
+      ball: { x: bumper.x, y: bumper.y - bumper.r - 10, vx: 0, vy: 6, held: false, active: true },
     });
     const before = g.score;
     for (let i = 0; i < 20; i++) tick(g);
@@ -70,7 +67,7 @@ describe('integration: boot and cycles', () => {
     tryLaunch(g, 0.9);
     const target = g.geometry.targets.find((t) => t.bank === 'BOARD' && t.letter === 'B');
     inject(g, {
-      ball: { x: target.x + 5, y: target.y + 2, vx: 0, vy: 1, held: false, active: true },
+      ball: { x: target.x + 5, y: target.y + 2, vx: 0, vy: 3, held: false, active: true },
     });
     for (let i = 0; i < 5; i++) tick(g);
     expect(g.board.lit[0]).toBe(true);

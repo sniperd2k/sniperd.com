@@ -63,7 +63,7 @@ describe('SFX synth', () => {
     expect(afterLaunch).toContain('plunger');
     const bumper = g.geometry.bumpers[0];
     inject(g, {
-      ball: { x: bumper.x, y: bumper.y - bumper.r - 8, vx: 0, vy: 6, held: false, active: true },
+      ball: { x: bumper.x, y: bumper.y - bumper.r - 10, vx: 0, vy: 6, held: false, active: true },
     });
     for (let i = 0; i < 25; i++) tick(g);
     const cues = drainSfx(g);

@@ -39,8 +39,11 @@ import {
   launchFromPlunger,
   stepPhysics,
   setFlipperPressed,
+  applyBallState,
+  kickBall,
   TABLE_W,
   TABLE_H,
+  PHYSICS_HZ,
 } from './physics.js';
 import { createParticleSystem, emitSnow, stepParticles } from './particles.js';
 
@@ -188,10 +191,9 @@ function handleTrigger(state, ev) {
         award(state, v, 'SNOW COLLECT');
         state.snow._readyCollect = false;
       }
-      // hold briefly then kick left
+      // kickout left into playfield (no teleport)
       if (ball) {
-        ball.vx = -6;
-        ball.vy = 2;
+        kickBall(ball, state.geometry, -6, 2);
         emitSnow(state.particles, ball.x, ball.y, 12, heavy);
       }
       if (state.modes.peakLit) {
@@ -211,12 +213,9 @@ function handleTrigger(state, ev) {
         state.snow._readyCollect = true;
         msg(state, 'SNOW LIT — COLLECT AT CHAIRLIFT', 150);
       }
-      // feed mini-flipper
+      // kick toward mini-flipper from ramp exit (impulse, stay near exit)
       if (ball) {
-        ball.x = 100;
-        ball.y = 145;
-        ball.vx = 3;
-        ball.vy = 1;
+        kickBall(ball, state.geometry, 3, 1);
       }
       emitSnow(state.particles, ball?.x || 70, ball?.y || 95, 10, heavy);
       break;
@@ -225,12 +224,11 @@ function handleTrigger(state, ev) {
       state.modes = bumpModeProgress(state.modes, 1);
       award(state, pipeRampValue(state.modes.modeProgress), 'CENTER PIPE');
       if (ball) {
-        // may divert to mini-flipper
+        // pipe exit impulse — alternate feed toward mini-flipper via velocity only
         if (state.modes.modeProgress % 2 === 0) {
-          ball.x = 110;
-          ball.y = 155;
-          ball.vx = 2;
-          ball.vy = 0;
+          kickBall(ball, state.geometry, -2, 1);
+        } else {
+          kickBall(ball, state.geometry, 2, 2);
         }
       }
       emitSnow(state.particles, ball?.x || 190, ball?.y || 70, 8, heavy);
@@ -242,11 +240,8 @@ function handleTrigger(state, ev) {
       pushSfx(state, 'treeWell');
       state.treeWellLit = false;
       if (ball) {
-        // kickout to right flipper
-        ball.x = 230;
-        ball.y = TABLE_H - 100;
-        ball.vx = 2;
-        ball.vy = 3;
+        // kickout from Tree Well toward lower right (impulse, no teleport)
+        kickBall(ball, state.geometry, -4, 5);
       }
       break;
     }
@@ -258,9 +253,10 @@ function handleTrigger(state, ev) {
           state.modes = startMultiball(state.modes, 3);
           // spawn extra balls
           for (let i = state.ballsList.length; i < 3; i++) {
-            const b = createBall(180 + i * 10, 200, (i - 1) * 2, -8);
+            const b = createBall(180 + i * 10, 200, (i - 1) * 2, -10);
             b.held = false;
             state.ballsList.push(b);
+            applyBallState(state.geometry, b);
           }
           msg(state, 'POWDER MULTIBALL!', 200);
           pushSfx(state, 'multiball');
@@ -285,6 +281,11 @@ function handleTrigger(state, ev) {
     case 'outlane_left':
     case 'outlane_right':
       state.modes = lightPeakAward(state.modes, 180);
+      break;
+    case 'orbit_left':
+    case 'orbit_right':
+      award(state, 150_000, 'ORBIT');
+      emitSnow(state.particles, ball?.x || 180, ball?.y || 100, 6, heavy);
       break;
     default:
       break;
@@ -438,8 +439,9 @@ export function inject(state, patch = {}) {
     b.held = false;
     b.active = true;
     state.ballInPlay = true;
+    applyBallState(state.geometry, b);
   }
   return state;
 }
 
-export { TABLE_W, TABLE_H, formatScore, plungerPower };
+export { TABLE_W, TABLE_H, PHYSICS_HZ, formatScore, plungerPower };
