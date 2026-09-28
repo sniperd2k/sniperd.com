@@ -1,111 +1,341 @@
 /**
- * SniperD Pinball bootstrap — Pixel Brick — full-screen canvas + chiptune SFX + turbo debug API.
+ * SniperD — calm cinematic starfield: gentle swirl + rare drifting bodies.
+ * Canvas 2D, ~60fps, mobile-friendly (Chrome + Safari).
  */
-import { createGame, tick, tryLaunch, getHud, inspectState, inject, drainSfx, TABLE_W, TABLE_H } from './game/game.js';
-import { createInputState, bindInput, consumeLaunch } from './game/input.js';
-import { resizeCanvas, drawFrame } from './game/render.js';
-import { createSfx } from './game/sfx.js';
-import { createTurbo, scriptedPlaythrough, runStandardHuntSuite, PHYSICS_TURBO, SCORE_TURBO } from './game/turbo.js';
 
-const canvas = document.getElementById('game');
-const state = createGame();
-const input = createInputState();
-const sfx = createSfx({ muted: false });
-const turbo = createTurbo(state, input);
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d', { alpha: false });
 
-let view = resizeCanvas(canvas);
-bindInput(canvas, input, { maxPullPx: 140 });
-sfx.bindUnlock(canvas);
+const STAR_LAYERS = [
+  { count: 90,  depth: 0.25, size: [0.4, 1.0], alpha: [0.25, 0.55], swirl: 0.012 },
+  { count: 140, depth: 0.55, size: [0.6, 1.6], alpha: [0.35, 0.75], swirl: 0.022 },
+  { count: 70,  depth: 1.0,  size: [0.9, 2.2], alpha: [0.5, 0.95],  swirl: 0.035 },
+];
 
-window.addEventListener('resize', () => {
-  view = resizeCanvas(canvas);
-});
+/** Soft nebula wisps for depth (subtle, not UI). */
+const NEBULAE = 4;
 
-function flushSfx(physEvents, extras = {}) {
-  sfx.onEvents(physEvents || [], extras);
-  for (const name of drainSfx(state)) {
-    sfx.play(name);
+/** How often a body (planet/galaxy) may spawn, in seconds (mean-ish). */
+const BODY_MEAN_INTERVAL = 28;
+const BODY_MIN_GAP = 14;
+
+let w = 0;
+let h = 0;
+let dpr = 1;
+let cx = 0;
+let cy = 0;
+let stars = [];
+let nebulae = [];
+let bodies = [];
+let t0 = performance.now();
+let lastBodyAt = -BODY_MIN_GAP;
+let nextBodyIn = BODY_MEAN_INTERVAL * (0.6 + Math.random() * 0.8);
+let driftX = 0;
+let driftY = 0;
+let swirlAngle = 0;
+
+function rand(a, b) {
+  return a + Math.random() * (b - a);
+}
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  w = Math.max(1, window.innerWidth);
+  h = Math.max(1, window.innerHeight);
+  canvas.width = Math.floor(w * dpr);
+  canvas.height = Math.floor(h * dpr);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = w * 0.5;
+  cy = h * 0.5;
+}
+
+function spawnStars() {
+  stars = [];
+  const span = Math.max(w, h) * 1.35;
+  for (const layer of STAR_LAYERS) {
+    for (let i = 0; i < layer.count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.sqrt(Math.random()) * span;
+      stars.push({
+        angle,
+        radius,
+        size: rand(layer.size[0], layer.size[1]),
+        alpha: rand(layer.alpha[0], layer.alpha[1]),
+        twinkle: rand(0.4, 1.6),
+        twPhase: Math.random() * Math.PI * 2,
+        depth: layer.depth,
+        swirl: layer.swirl,
+        hue: Math.random() < 0.12 ? rand(190, 230) : rand(0, 40),
+        warm: Math.random() < 0.18,
+      });
+    }
   }
 }
 
-/** Public test/debug API */
-window.__SNIPERD__ = {
-  version: '1.6.0',
-  getState: () => inspectState(state),
-  getHud: () => getHud(state),
-  inject: (patch) => inject(state, patch),
-  tick: (n = 1) => {
-    for (let i = 0; i < n; i++) {
-      turbo.applyAutos(state.frame);
-      const ev = tick(state, input);
-      flushSfx(ev);
+function spawnNebulae() {
+  nebulae = [];
+  for (let i = 0; i < NEBULAE; i++) {
+    nebulae.push({
+      x: rand(-0.2, 1.2) * w,
+      y: rand(-0.2, 1.2) * h,
+      r: rand(80, 220) * (Math.min(w, h) / 400),
+      hue: rand(220, 280),
+      alpha: rand(0.03, 0.08),
+      vx: rand(-3, 3),
+      vy: rand(-2, 2),
+    });
+  }
+}
+
+function spawnBody(nowSec) {
+  const kind = Math.random() < 0.55 ? 'planet' : 'galaxy';
+  const fromLeft = Math.random() < 0.5;
+  const y = rand(h * 0.15, h * 0.85);
+  const speed = rand(8, 18);
+  const scale = Math.min(w, h) / 390;
+
+  if (kind === 'planet') {
+    bodies.push({
+      kind: 'planet',
+      x: fromLeft ? -60 * scale : w + 60 * scale,
+      y,
+      vx: (fromLeft ? 1 : -1) * speed,
+      vy: rand(-2.5, 2.5),
+      r: rand(10, 22) * scale,
+      hue: rand(15, 50),
+      sat: rand(35, 70),
+      light: rand(40, 62),
+      ring: Math.random() < 0.35,
+      alpha: rand(0.55, 0.85),
+      born: nowSec,
+    });
+  } else {
+    bodies.push({
+      kind: 'galaxy',
+      x: fromLeft ? -90 * scale : w + 90 * scale,
+      y,
+      vx: (fromLeft ? 1 : -1) * speed * 0.7,
+      vy: rand(-1.5, 1.5),
+      rx: rand(28, 48) * scale,
+      ry: rand(10, 18) * scale,
+      rot: rand(0, Math.PI * 2),
+      spin: rand(-0.08, 0.08),
+      hue: rand(200, 280),
+      alpha: rand(0.35, 0.6),
+      born: nowSec,
+    });
+  }
+  lastBodyAt = nowSec;
+  nextBodyIn = BODY_MEAN_INTERVAL * (0.55 + Math.random() * 0.9);
+}
+
+function drawBackground() {
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.75);
+  g.addColorStop(0, '#0a0a1c');
+  g.addColorStop(0.45, '#050512');
+  g.addColorStop(1, '#02020a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function drawNebulae(dt) {
+  for (const n of nebulae) {
+    n.x += n.vx * dt;
+    n.y += n.vy * dt;
+    if (n.x < -n.r) n.x = w + n.r;
+    if (n.x > w + n.r) n.x = -n.r;
+    if (n.y < -n.r) n.y = h + n.r;
+    if (n.y > h + n.r) n.y = -n.r;
+
+    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    g.addColorStop(0, `hsla(${n.hue}, 55%, 55%, ${n.alpha})`);
+    g.addColorStop(0.55, `hsla(${n.hue}, 50%, 35%, ${n.alpha * 0.35})`);
+    g.addColorStop(1, 'hsla(240, 40%, 10%, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawStars(time, dt) {
+  swirlAngle += dt * 0.015;
+  driftX += Math.sin(time * 0.03) * 0.15 * dt * 60;
+  driftY += Math.cos(time * 0.022) * 0.12 * dt * 60;
+
+  for (const s of stars) {
+    s.angle += s.swirl * dt;
+    const a = s.angle + swirlAngle * s.depth * 0.15;
+    const ox = Math.cos(a) * s.radius + driftX * s.depth;
+    const oy = Math.sin(a) * s.radius + driftY * s.depth;
+    let x = cx + ox;
+    let y = cy + oy;
+
+    // Soft wrap so the field feels endless without popping
+    const pad = 40;
+    if (x < -pad) x += w + pad * 2;
+    if (x > w + pad) x -= w + pad * 2;
+    if (y < -pad) y += h + pad * 2;
+    if (y > h + pad) y -= h + pad * 2;
+
+    const tw = 0.65 + 0.35 * Math.sin(time * s.twinkle + s.twPhase);
+    const alpha = s.alpha * tw;
+    if (s.warm) {
+      ctx.fillStyle = `hsla(${s.hue}, 70%, 78%, ${alpha})`;
+    } else {
+      ctx.fillStyle = `hsla(210, 40%, 92%, ${alpha})`;
     }
-  },
-  launch: (pull = 0.8) => {
-    tryLaunch(state, pull);
-    flushSfx([], { launch: true });
-  },
-  setFlippers: (left, right) => {
-    input.left = !!left;
-    input.right = !!right;
-  },
-  // Turbo / playthrough hunt
-  setTurbo: (n) => turbo.setTurbo(n),
-  getTurbo: () => turbo.getTurbo(),
-  autoPlunge: (on = true) => turbo.setAutoPlunge(on),
-  autoFlip: (left = true, right = true, period) => turbo.setAutoFlip(left, right, period),
-  scriptedPlaythrough: (opts) => scriptedPlaythrough(state, input, opts || {}),
-  runHunt: (opts) => runStandardHuntSuite(opts || {}),
-  PHYSICS_TURBO,
-  SCORE_TURBO,
-  // SFX
-  sfx: {
-    unlock: () => sfx.unlock(),
-    mute: (m = true) => sfx.setMuted(m),
-    isMuted: () => sfx.isMuted(),
-    isUnlocked: () => sfx.isUnlocked(),
-    play: (name) => sfx.play(name),
-    getLog: () => sfx.getLog(),
-    presets: sfx.presets,
-  },
-  table: { W: TABLE_W, H: TABLE_H },
-  _state: state,
-  _input: input,
-  _sfx: sfx,
-  _turbo: turbo,
-};
+    ctx.beginPath();
+    ctx.arc(x, y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Occasional soft glow on brighter stars
+    if (s.size > 1.4 && alpha > 0.55) {
+      ctx.fillStyle = `hsla(210, 60%, 80%, ${alpha * 0.12})`;
+      ctx.beginPath();
+      ctx.arc(x, y, s.size * 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawPlanet(b) {
+  ctx.save();
+  ctx.globalAlpha = b.alpha;
+  // Atmosphere glow
+  const glow = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r * 2.2);
+  glow.addColorStop(0, `hsla(${b.hue}, ${b.sat}%, ${b.light}%, 0.25)`);
+  glow.addColorStop(1, `hsla(${b.hue}, 40%, 20%, 0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r * 2.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body
+  const body = ctx.createRadialGradient(
+    b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.1,
+    b.x, b.y, b.r
+  );
+  body.addColorStop(0, `hsl(${b.hue}, ${b.sat}%, ${b.light + 18}%)`);
+  body.addColorStop(0.55, `hsl(${b.hue}, ${b.sat}%, ${b.light}%)`);
+  body.addColorStop(1, `hsl(${b.hue + 20}, ${b.sat - 10}%, ${b.light - 22}%)`);
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (b.ring) {
+    ctx.strokeStyle = `hsla(${b.hue + 10}, 40%, 70%, 0.45)`;
+    ctx.lineWidth = Math.max(1, b.r * 0.12);
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, b.r * 1.7, b.r * 0.45, -0.35, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGalaxy(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.rot);
+  ctx.globalAlpha = b.alpha;
+
+  // Soft halo
+  const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, b.rx * 1.4);
+  halo.addColorStop(0, `hsla(${b.hue}, 70%, 70%, 0.35)`);
+  halo.addColorStop(0.4, `hsla(${b.hue}, 60%, 50%, 0.12)`);
+  halo.addColorStop(1, 'hsla(240, 40%, 20%, 0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, b.rx * 1.4, b.ry * 1.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Disk
+  const disk = ctx.createRadialGradient(0, 0, 0, 0, 0, b.rx);
+  disk.addColorStop(0, `hsla(${b.hue + 20}, 80%, 85%, 0.85)`);
+  disk.addColorStop(0.25, `hsla(${b.hue}, 70%, 65%, 0.45)`);
+  disk.addColorStop(0.7, `hsla(${b.hue - 10}, 55%, 45%, 0.18)`);
+  disk.addColorStop(1, 'hsla(240, 40%, 20%, 0)');
+  ctx.fillStyle = disk;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Faint spiral suggestion
+  ctx.strokeStyle = `hsla(${b.hue}, 60%, 75%, 0.2)`;
+  ctx.lineWidth = 1;
+  for (let arm = 0; arm < 2; arm++) {
+    ctx.beginPath();
+    for (let i = 0; i < 40; i++) {
+      const t = i / 40;
+      const ang = t * Math.PI * 2.2 + arm * Math.PI;
+      const rr = t * b.rx;
+      const x = Math.cos(ang) * rr;
+      const y = Math.sin(ang) * rr * (b.ry / b.rx);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function updateBodies(dt, nowSec) {
+  if (nowSec - lastBodyAt >= nextBodyIn && bodies.length < 2) {
+    spawnBody(nowSec);
+  }
+
+  for (let i = bodies.length - 1; i >= 0; i--) {
+    const b = bodies[i];
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.kind === 'galaxy') b.rot += b.spin * dt;
+
+    const margin = 120;
+    if (b.x < -margin || b.x > w + margin || b.y < -margin || b.y > h + margin) {
+      bodies.splice(i, 1);
+    }
+  }
+}
+
+function drawBodies() {
+  for (const b of bodies) {
+    if (b.kind === 'planet') drawPlanet(b);
+    else drawGalaxy(b);
+  }
+}
 
 let lastTs = performance.now();
-let lagSamples = [];
 
 function frame(ts) {
-  const dt = ts - lastTs;
+  const dt = Math.min(0.05, (ts - lastTs) / 1000);
   lastTs = ts;
-  lagSamples.push(dt);
-  if (lagSamples.length > 120) lagSamples.shift();
-  const avg = lagSamples.reduce((a, b) => a + b, 0) / lagSamples.length;
-  state.rAFLagMs = avg;
-  state.lastFrameTs = ts;
+  const time = (ts - t0) / 1000;
 
-  const pull = consumeLaunch(input);
-  if (pull != null) {
-    tryLaunch(state, pull);
-    flushSfx([], { launch: true });
-  }
+  drawBackground();
+  drawNebulae(dt);
+  drawStars(time, dt);
+  updateBodies(dt, time);
+  drawBodies();
 
-  // When turbo > 1, run N physics ticks per frame (default 1 = normal play).
-  const n = turbo.getTurbo();
-  let lastEv = [];
-  for (let i = 0; i < n; i++) {
-    turbo.applyAutos(state.frame);
-    lastEv = tick(state, input) || [];
-  }
-  flushSfx(lastEv);
-
-  drawFrame(view.ctx, state, view.w, view.h, input);
   requestAnimationFrame(frame);
 }
 
-requestAnimationFrame(frame);
+function init() {
+  resize();
+  spawnStars();
+  spawnNebulae();
+  lastTs = performance.now();
+  t0 = lastTs;
+  requestAnimationFrame(frame);
+}
 
-document.title = 'SniperD Pinball';
+window.addEventListener('resize', () => {
+  resize();
+  spawnStars();
+  spawnNebulae();
+});
+
+init();

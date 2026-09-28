@@ -5,20 +5,18 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #050508;
+  background: #02020a;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-#game {
+#stars {
   display: block;
   width: 100vw;
   height: 100vh;
   width: 100dvw;
   height: 100dvh;
   touch-action: none;
-  cursor: crosshair;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  cursor: default;
 }

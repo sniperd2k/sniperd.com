@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>SniperD Pinball</title>
-  <meta name="description" content="SniperD Pinball — Pixel Brick 8-bit HTML5 pinball. Flip, plunge, and chase the high score." />
-  <meta name="theme-color" content="#050508" />
+  <title>SniperD</title>
+  <meta name="description" content="SniperD — drifting through the stars." />
+  <meta name="theme-color" content="#02020a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="canonical" href="https://sniperd.com/" />
@@ -19,19 +19,16 @@
   gtag('config', 'G-3Z1GXBW9W2');
 </script>
 
-  <!-- CACHE_BUST: 8bit-v1 -->
-  <link rel="stylesheet" href="src/styles.css?v=8bit-v1" />
-  <!-- Vendored Matter.js (UMD) — required before ES modules -->
-  <script src="assets/vendor/matter.min.js?v=8bit-v1"></script>
+  <!-- CACHE_BUST: stars-v1 -->
+  <link rel="stylesheet" href="src/styles.css?v=stars-v1" />
 </head>
 <body>
-  <canvas id="game" width="390" height="844" aria-label="SniperD Pinball playfield"></canvas>
+  <canvas id="stars" aria-hidden="true"></canvas>
   <noscript>
-    <main style="color:#00e8ff;font-family:monospace;padding:2rem;text-align:center">
-      <h1>SniperD Pinball</h1>
-      <p>JavaScript is required to play.</p>
+    <main style="color:#c8d0ff;font-family:system-ui,sans-serif;padding:2rem;text-align:center;background:#02020a;min-height:100vh">
+      <p>JavaScript is required.</p>
     </main>
   </noscript>
-  <script type="module" src="src/main.js?v=8bit-v1"></script>
+  <script type="module" src="src/main.js?v=stars-v1"></script>
 </body>
 </html>
