@@ -1,7 +1,7 @@
 /**
- * Canvas renderer — SniperD Cadet: deep space-blue playfield,
- * chrome rails, neon targets, DMD HUD. Original vector art only
- * (no MS asset rip, no snowboard mustard palette).
+ * Canvas renderer — SniperD Arcade Neon: walnut woodrail deck,
+ * chrome rails, magenta/cyan neon targets, amber DMD HUD.
+ * Original vector art only (no third-party IP).
  */
 
 import { TABLE_W, TABLE_H } from './physics.js';
@@ -9,30 +9,34 @@ import { drawParticles } from './particles.js';
 import { formatScore } from './scoring.js';
 
 const C = {
-  cabinet0: '#050a12',
-  cabinet1: '#0a1524',
-  deck0: '#0c1e3a',
-  deck1: '#123056',
-  deck2: '#0a1830',
-  deckGlow: '#1a4a7a',
-  rail: '#c8dde8',
-  chromeHi: '#eef6ff',
-  chromeLo: '#6a8498',
-  accent: '#3ad4ff',
-  accentLit: '#9ef0ff',
-  neon: '#5cffd2',
-  neonHot: '#b8fff0',
-  gunmetal: '#3a4a5c',
-  steel: '#8aa0b4',
-  ink: '#040810',
-  dmdBg: 'rgba(4,10,18,0.88)',
-  dmdText: '#b8f0ff',
-  dmdDim: '#3a6080',
-  warning: '#ffb060',
-  warningLit: '#ffd090',
-  saucer: '#6a90ff',
-  saucerLit: '#a8c4ff',
-  jetCore: '#1a3048',
+  cabinet0: '#0c0604',
+  cabinet1: '#1a0e08',
+  deck0: '#3a2214',
+  deck1: '#5a3420',
+  deck2: '#2a180e',
+  deckGlow: '#6a4428',
+  woodGrain: 'rgba(90,50,28,0.35)',
+  rail: '#e8dcc8',
+  chromeHi: '#fff6e8',
+  chromeLo: '#8a7860',
+  accent: '#ff4fd8',
+  accentLit: '#ff9aec',
+  neon: '#3dffc8',
+  neonHot: '#b8ffe8',
+  neonAmber: '#ffb020',
+  neonAmberLit: '#ffd070',
+  gunmetal: '#4a3830',
+  steel: '#a89078',
+  brass: '#c8a060',
+  ink: '#100804',
+  dmdBg: 'rgba(12,6,4,0.9)',
+  dmdText: '#ffe0a8',
+  dmdDim: '#6a5030',
+  warning: '#ff9020',
+  warningLit: '#ffc060',
+  saucer: '#ff60c8',
+  saucerLit: '#ffb0e8',
+  jetCore: '#2a1810',
 };
 
 export function resizeCanvas(canvas) {
@@ -65,7 +69,7 @@ export function drawFrame(ctx, state, viewW, viewH, input) {
   const g = ctx.createLinearGradient(0, 0, 0, viewH);
   g.addColorStop(0, C.cabinet0);
   g.addColorStop(0.45, C.cabinet1);
-  g.addColorStop(1, '#020508');
+  g.addColorStop(1, '#080402');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, viewW, viewH);
 
@@ -86,7 +90,7 @@ export function drawFrame(ctx, state, viewW, viewH, input) {
 function drawPlayfield(ctx, state) {
   const geo = state.geometry;
 
-  // Deep blue deck with soft vignette
+  // Walnut woodrail deck with warm vignette
   const deck = ctx.createRadialGradient(
     TABLE_W * 0.5,
     TABLE_H * 0.35,
@@ -103,30 +107,32 @@ function drawPlayfield(ctx, state) {
   ctx.fillStyle = deck;
   ctx.fill();
 
+  // Subtle wood grain strokes (original procedural, not a texture rip)
+  ctx.strokeStyle = C.woodGrain;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 18; i++) {
+    const y = 55 + i * 32;
+    ctx.beginPath();
+    ctx.moveTo(28, y + (i % 3) * 2);
+    ctx.quadraticCurveTo(TABLE_W * 0.5, y + 6, TABLE_W - 28, y - (i % 2) * 3);
+    ctx.stroke();
+  }
+
   // Chrome outer rail
   ctx.strokeStyle = C.chromeHi;
   ctx.lineWidth = 4;
+  roundRect(ctx, 12, 32, TABLE_W - 24, TABLE_H - 42, 18);
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(100,140,180,0.45)';
+  ctx.strokeStyle = 'rgba(200,160,96,0.45)';
   ctx.lineWidth = 1.5;
   roundRect(ctx, 16, 36, TABLE_W - 32, TABLE_H - 50, 14);
   ctx.stroke();
 
-  // Subtle starfield / panel dots (original, not a logo)
-  ctx.fillStyle = 'rgba(90,180,255,0.07)';
-  for (let i = 0; i < 28; i++) {
-    const sx = 40 + ((i * 97) % (TABLE_W - 80));
-    const sy = 70 + ((i * 53) % (TABLE_H - 140));
-    ctx.beginPath();
-    ctx.arc(sx, sy, 1.2 + (i % 3) * 0.4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Soft constellation wash upper PF
+  // Soft neon wash upper PF
   const wash = ctx.createLinearGradient(40, 60, 320, 220);
-  wash.addColorStop(0, 'rgba(58,212,255,0.06)');
-  wash.addColorStop(0.5, 'rgba(92,255,210,0.04)');
-  wash.addColorStop(1, 'rgba(106,144,255,0.05)');
+  wash.addColorStop(0, 'rgba(255,79,216,0.07)');
+  wash.addColorStop(0.5, 'rgba(61,255,200,0.05)');
+  wash.addColorStop(1, 'rgba(255,176,32,0.06)');
   ctx.fillStyle = wash;
   ctx.beginPath();
   ctx.moveTo(40, 210);
@@ -140,12 +146,11 @@ function drawPlayfield(ctx, state) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (const seg of geo.walls) {
-    // Chrome dual-stroke for rails
     ctx.beginPath();
     ctx.moveTo(seg.x1, seg.y1);
     ctx.lineTo(seg.x2, seg.y2);
     if (seg.kind === 'ramp') {
-      ctx.strokeStyle = 'rgba(20,40,60,0.9)';
+      ctx.strokeStyle = 'rgba(40,20,10,0.9)';
       ctx.lineWidth = 7;
       ctx.stroke();
       ctx.beginPath();
@@ -154,7 +159,7 @@ function drawPlayfield(ctx, state) {
       ctx.strokeStyle = C.neon;
       ctx.lineWidth = 3.5;
       ctx.shadowColor = C.neon;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.stroke();
       ctx.shadowBlur = 0;
     } else if (seg.kind === 'lane') {
@@ -162,16 +167,16 @@ function drawPlayfield(ctx, state) {
       ctx.lineWidth = 3.5;
       ctx.stroke();
     } else if (seg.kind === 'sling') {
-      ctx.strokeStyle = 'rgba(20,50,40,0.85)';
+      ctx.strokeStyle = 'rgba(40,10,30,0.85)';
       ctx.lineWidth = 8;
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(seg.x1, seg.y1);
       ctx.lineTo(seg.x2, seg.y2);
-      ctx.strokeStyle = C.neonHot;
+      ctx.strokeStyle = C.accentLit;
       ctx.lineWidth = 4.5;
-      ctx.shadowColor = C.neon;
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = C.accent;
+      ctx.shadowBlur = 12;
       ctx.stroke();
       ctx.shadowBlur = 0;
     } else if (seg.kind === 'orbit') {
@@ -185,43 +190,43 @@ function drawPlayfield(ctx, state) {
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else if (seg.kind === 'guide') {
-      ctx.strokeStyle = 'rgba(180,220,240,0.4)';
+      ctx.strokeStyle = 'rgba(232,220,200,0.35)';
       ctx.lineWidth = 2.5;
       ctx.stroke();
     } else {
-      ctx.strokeStyle = C.steel;
+      ctx.strokeStyle = C.brass;
       ctx.lineWidth = 3.5;
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(seg.x1, seg.y1);
       ctx.lineTo(seg.x2, seg.y2);
-      ctx.strokeStyle = 'rgba(220,240,255,0.35)';
+      ctx.strokeStyle = 'rgba(255,246,232,0.35)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
   }
 
-  // Jet bumpers — glowing rings
+  // Jet bumpers — hot neon rings
   for (const b of geo.bumpers) {
     const glow = b.cooldown > 0;
     if (glow) {
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r + 6, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(158,240,255,0.25)';
+      ctx.fillStyle = 'rgba(255,154,236,0.28)';
       ctx.fill();
     }
     const grd = ctx.createRadialGradient(b.x - 4, b.y - 4, 2, b.x, b.y, b.r);
     grd.addColorStop(0, glow ? '#ffffff' : C.accentLit);
     grd.addColorStop(0.45, glow ? C.accentLit : C.accent);
-    grd.addColorStop(1, glow ? '#2a80a8' : '#1a4060');
+    grd.addColorStop(1, glow ? '#a02880' : '#601848');
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = grd;
     ctx.fill();
-    ctx.strokeStyle = glow ? '#ffffff' : C.accentLit;
+    ctx.strokeStyle = glow ? '#ffffff' : C.neonAmberLit;
     ctx.lineWidth = 2.5;
     ctx.shadowColor = C.accent;
-    ctx.shadowBlur = glow ? 14 : 6;
+    ctx.shadowBlur = glow ? 16 : 7;
     ctx.stroke();
     ctx.shadowBlur = 0;
     ctx.beginPath();
@@ -230,7 +235,7 @@ function drawPlayfield(ctx, state) {
     ctx.fill();
   }
 
-  // CADET standup targets — lit neon
+  // SNIPE standup targets — lit neon
   for (const t of geo.targets) {
     const lit = isTargetLit(state, t);
     if (lit) {
@@ -261,33 +266,32 @@ function drawPlayfield(ctx, state) {
   drawScoop(ctx, geo.triggers.find((t) => t.id === 'ramp_exit'), 'RAMP', C.neon, true);
   drawScoop(ctx, geo.triggers.find((t) => t.id === 'loop_exit'), 'LOOP', C.accentLit, false);
 
-  // Title ribbon — DMD-style
-  ctx.fillStyle = 'rgba(4,12,24,0.78)';
-  roundRect(ctx, 44, 44, TABLE_W - 88, 24, 4);
+  // Title ribbon — amber DMD-style
+  ctx.fillStyle = 'rgba(12,6,4,0.82)';
+  roundRect(ctx, 40, 44, TABLE_W - 80, 24, 4);
   ctx.fill();
-  ctx.strokeStyle = C.accent;
+  ctx.strokeStyle = C.neonAmber;
   ctx.lineWidth = 1.2;
-  roundRect(ctx, 44, 44, TABLE_W - 88, 24, 4);
+  roundRect(ctx, 40, 44, TABLE_W - 80, 24, 4);
   ctx.stroke();
   ctx.fillStyle = C.dmdText;
   ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SNIPERD  ·  CADET', TABLE_W / 2, 60);
+  ctx.fillText('SNIPERD  ·  ARCADE NEON', TABLE_W / 2, 60);
 }
 
 function isTargetLit(state, t) {
-  if (t.bank !== 'CADET' || !state.cadet) return false;
+  if (t.bank !== 'SNIPE' || !state.snipe) return false;
   const same = state.geometry.targets.filter((x) => x.bank === t.bank);
   const idx = same.indexOf(t);
-  return idx >= 0 && !!state.cadet.lit[idx];
+  return idx >= 0 && !!state.snipe.lit[idx];
 }
 
 function drawScoop(ctx, t, label, color, deep) {
   if (!t) return;
-  // Visible scoop well
   const grd = ctx.createRadialGradient(t.x, t.y, 1, t.x, t.y, t.r);
   grd.addColorStop(0, deep ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.4)');
-  grd.addColorStop(1, 'rgba(10,30,50,0.35)');
+  grd.addColorStop(1, 'rgba(40,20,10,0.35)');
   ctx.beginPath();
   ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
   ctx.fillStyle = grd;
@@ -298,7 +302,6 @@ function drawScoop(ctx, t, label, color, deep) {
   ctx.shadowBlur = 8;
   ctx.stroke();
   ctx.shadowBlur = 0;
-  // Inner ring
   ctx.beginPath();
   ctx.arc(t.x, t.y, t.r * 0.55, 0, Math.PI * 2);
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
@@ -314,7 +317,6 @@ function drawFlippers(ctx, flippers) {
   for (const f of flippers) {
     const tipX = f.pivotX + Math.cos(f.angle) * f.length;
     const tipY = f.pivotY + Math.sin(f.angle) * f.length;
-    // Shadow bat
     ctx.strokeStyle = 'rgba(0,0,0,0.45)';
     ctx.lineWidth = (f.side === 'mini' ? 8 : 13) + 2;
     ctx.lineCap = 'round';
@@ -322,17 +324,15 @@ function drawFlippers(ctx, flippers) {
     ctx.moveTo(f.pivotX + 1, f.pivotY + 2);
     ctx.lineTo(tipX + 1, tipY + 2);
     ctx.stroke();
-    // Chrome bat
     const bat = ctx.createLinearGradient(f.pivotX, f.pivotY, tipX, tipY);
-    bat.addColorStop(0, f.pressed ? C.accentLit : C.chromeHi);
-    bat.addColorStop(1, f.pressed ? C.accent : C.steel);
+    bat.addColorStop(0, f.pressed ? C.neonAmberLit : C.chromeHi);
+    bat.addColorStop(1, f.pressed ? C.neonAmber : C.steel);
     ctx.strokeStyle = bat;
     ctx.lineWidth = f.side === 'mini' ? 8 : 12;
     ctx.beginPath();
     ctx.moveTo(f.pivotX, f.pivotY);
     ctx.lineTo(tipX, tipY);
     ctx.stroke();
-    // Pivot hub
     ctx.fillStyle = C.accent;
     ctx.beginPath();
     ctx.arc(f.pivotX, f.pivotY, 5.5, 0, Math.PI * 2);
@@ -352,9 +352,9 @@ function drawBalls(ctx, balls) {
     ctx.fill();
     const grd = ctx.createRadialGradient(b.x - 2.5, b.y - 2.5, 1, b.x, b.y, b.r);
     grd.addColorStop(0, '#ffffff');
-    grd.addColorStop(0.4, '#e4f0f8');
-    grd.addColorStop(0.85, '#90a8b8');
-    grd.addColorStop(1, '#5a7080');
+    grd.addColorStop(0.4, '#f0e8e0');
+    grd.addColorStop(0.85, '#a89888');
+    grd.addColorStop(1, '#685848');
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fillStyle = grd;
@@ -369,19 +369,17 @@ function drawPlunger(ctx, state, input) {
   const p = state.geometry.plunger;
   const pull = input?.plungerPulling ? input.plungerPull : input?._launch || 0;
   const travel = pull * 56;
-  // Shaft
   ctx.fillStyle = C.gunmetal;
   ctx.fillRect(p.x - 5, p.y - 22 + travel, 10, 54);
   ctx.fillStyle = C.chromeLo;
   ctx.fillRect(p.x - 3, p.y - 20 + travel, 6, 50);
-  // Knob
   ctx.fillStyle = C.warning;
   roundRect(ctx, p.x - 9, p.y + 28 + travel, 18, 12, 3);
   ctx.fill();
   ctx.strokeStyle = C.warningLit;
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.fillStyle = C.accentLit;
+  ctx.fillStyle = C.neonAmberLit;
   ctx.font = 'bold 8px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('PULL', p.x, p.y + 54 + travel);
@@ -394,18 +392,16 @@ function drawHud(ctx, state, viewW, viewH) {
     msg: state.messageTimer > 0 ? state.message : '',
   };
 
-  // DMD bezel
   ctx.fillStyle = C.dmdBg;
   ctx.fillRect(0, 0, viewW, 56);
   const bezel = ctx.createLinearGradient(0, 0, viewW, 0);
-  bezel.addColorStop(0, 'rgba(58,212,255,0.15)');
-  bezel.addColorStop(0.5, 'rgba(92,255,210,0.35)');
-  bezel.addColorStop(1, 'rgba(58,212,255,0.15)');
+  bezel.addColorStop(0, 'rgba(255,79,216,0.18)');
+  bezel.addColorStop(0.5, 'rgba(255,176,32,0.4)');
+  bezel.addColorStop(1, 'rgba(61,255,200,0.18)');
   ctx.strokeStyle = bezel;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, viewW - 2, 54);
 
-  // Scanline hint
   ctx.fillStyle = 'rgba(0,0,0,0.15)';
   for (let y = 2; y < 54; y += 3) {
     ctx.fillRect(0, y, viewW, 1);
@@ -414,38 +410,38 @@ function drawHud(ctx, state, viewW, viewH) {
   ctx.fillStyle = C.dmdText;
   ctx.font = `bold ${Math.max(17, Math.floor(viewW * 0.058))}px monospace`;
   ctx.textAlign = 'left';
-  ctx.shadowColor = C.accent;
+  ctx.shadowColor = C.neonAmber;
   ctx.shadowBlur = 6;
   ctx.fillText(hud.score, 14, 28);
   ctx.shadowBlur = 0;
   ctx.font = 'bold 11px monospace';
-  ctx.fillStyle = C.accent;
+  ctx.fillStyle = C.neonAmber;
   ctx.fillText(`BALL  ${hud.balls}`, 14, 46);
 
-  if (state.cadet) {
-    drawLetters(ctx, 'CADET', state.cadet.lit, viewW - 14, 30);
+  if (state.snipe) {
+    drawLetters(ctx, 'SNIPE', state.snipe.lit, viewW - 14, 30);
   }
 
   if (hud.msg) {
-    ctx.fillStyle = 'rgba(4,12,24,0.82)';
+    ctx.fillStyle = 'rgba(12,6,4,0.85)';
     const tw = Math.min(viewW - 24, 380);
     roundRect(ctx, (viewW - tw) / 2, viewH * 0.4, tw, 40, 6);
     ctx.fill();
-    ctx.strokeStyle = C.accent;
+    ctx.strokeStyle = C.neonAmber;
     ctx.lineWidth = 1.5;
     roundRect(ctx, (viewW - tw) / 2, viewH * 0.4, tw, 40, 6);
     ctx.stroke();
-    ctx.fillStyle = C.accentLit;
+    ctx.fillStyle = C.neonAmberLit;
     ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'center';
-    ctx.shadowColor = C.accent;
+    ctx.shadowColor = C.neonAmber;
     ctx.shadowBlur = 8;
     ctx.fillText(hud.msg, viewW / 2, viewH * 0.4 + 26);
     ctx.shadowBlur = 0;
   }
 
   if (state.gameOver) {
-    ctx.fillStyle = 'rgba(2,6,12,0.85)';
+    ctx.fillStyle = 'rgba(8,4,2,0.88)';
     ctx.fillRect(0, 0, viewW, viewH);
     ctx.fillStyle = C.dmdText;
     ctx.font = 'bold 28px monospace';
@@ -455,7 +451,7 @@ function drawHud(ctx, state, viewW, viewH) {
     ctx.fillText('GAME OVER', viewW / 2, viewH / 2 - 12);
     ctx.shadowBlur = 0;
     ctx.font = '16px monospace';
-    ctx.fillStyle = C.accent;
+    ctx.fillStyle = C.neonAmber;
     ctx.fillText(hud.score, viewW / 2, viewH / 2 + 22);
     ctx.fillStyle = C.dmdDim;
     ctx.font = '13px sans-serif';
@@ -485,23 +481,23 @@ function drawTouchHints(ctx, viewW, viewH, input) {
   const leftHi = viewW * 0.45;
   const rightLo = viewW * 0.55;
   const rightHi = viewW * 0.88;
-  ctx.strokeStyle = 'rgba(180,230,255,0.1)';
+  ctx.strokeStyle = 'rgba(255,220,160,0.12)';
   ctx.setLineDash([5, 7]);
   ctx.lineWidth = 1;
   ctx.strokeRect(leftLo, viewH * 0.62, leftHi - leftLo, viewH * 0.35);
   ctx.strokeRect(rightLo, viewH * 0.62, rightHi - rightLo, viewH * 0.35);
   ctx.setLineDash([]);
-  ctx.fillStyle = 'rgba(180,230,255,0.28)';
+  ctx.fillStyle = 'rgba(255,220,160,0.3)';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('LEFT', (leftLo + leftHi) / 2, viewH - 10);
   ctx.fillText('RIGHT', (rightLo + rightHi) / 2, viewH - 10);
   if (input?.left) {
-    ctx.fillStyle = 'rgba(58,212,255,0.14)';
+    ctx.fillStyle = 'rgba(255,79,216,0.14)';
     ctx.fillRect(leftLo, viewH * 0.55, leftHi - leftLo, viewH * 0.45);
   }
   if (input?.right) {
-    ctx.fillStyle = 'rgba(58,212,255,0.14)';
+    ctx.fillStyle = 'rgba(61,255,200,0.14)';
     ctx.fillRect(rightLo, viewH * 0.55, rightHi - rightLo, viewH * 0.45);
   }
 }

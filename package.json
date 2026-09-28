@@ -1,9 +1,9 @@
 {
   "name": "sniperd-pinball",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
-  "description": "SniperD Pinball \u2014 Cadet-themed HTML5 pinball for sniperd.com",
+  "description": "SniperD Pinball \u2014 Arcade Neon woodrail HTML5 pinball for sniperd.com",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

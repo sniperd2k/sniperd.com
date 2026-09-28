@@ -1,5 +1,5 @@
 /**
- * Web Audio synth SFX — original SniperD Cadet banks (no sampled assets).
+ * Web Audio synth SFX — original SniperD Arcade Neon banks (no sampled assets).
  * Unlock on first user gesture. Mute/gate for headless tests.
  */
 
@@ -9,7 +9,7 @@ const PRESETS = {
   ramp: { type: 'sawtooth', freq: 240, freqEnd: 560, dur: 0.16, gain: 0.07 },
   plunger: { type: 'square', freq: 100, freqEnd: 45, dur: 0.11, gain: 0.15 },
   saucer: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
-  // Kept for API / hunt / older cues — remapped tones for Cadet
+  // Kept for API / hunt / older cues — Arcade Neon synth tones
   treeWell: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
   multiball: { type: 'square', freq: 300, freqEnd: 600, dur: 0.28, gain: 0.1 },
   scoring: { type: 'sine', freq: 720, freqEnd: 960, dur: 0.09, gain: 0.08 },

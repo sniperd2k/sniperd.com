@@ -3,7 +3,7 @@ import { createSfx, PRESETS } from '../../src/game/sfx.js';
 import { createGame, tick, tryLaunch, drainSfx, inject } from '../../src/game/game.js';
 
 describe('SFX synth', () => {
-  it('exposes expected Cadet presets', () => {
+  it('exposes expected Arcade Neon presets', () => {
     const sfx = createSfx({ muted: true });
     for (const name of [
       'flipper',

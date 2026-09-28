@@ -61,15 +61,15 @@ describe('integration: boot and cycles', () => {
     expect(getHud(g).score).toBe(g.score);
   });
 
-  it('CADET target spots letter and scores', () => {
+  it('SNIPE target spots letter and scores', () => {
     const g = createGame();
     tryLaunch(g, 0.9);
-    const target = g.geometry.targets.find((t) => t.bank === 'CADET' && t.letter === 'C');
+    const target = g.geometry.targets.find((t) => t.bank === 'SNIPE' && t.letter === 'S');
     inject(g, {
       ball: { x: target.x + 5, y: target.y + 2, vx: 0, vy: 3, held: false, active: true },
     });
     for (let i = 0; i < 5; i++) tick(g);
-    expect(g.cadet.lit[0]).toBe(true);
+    expect(g.snipe.lit[0]).toBe(true);
     expect(g.score).toBeGreaterThanOrEqual(250_000);
   });
 

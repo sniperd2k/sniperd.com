@@ -138,7 +138,7 @@ describe('Matter.js fixed-step physics', () => {
     expect(ball.active).toBe(false);
   });
 
-  it('layout includes Cadet essentials', () => {
+  it('layout includes Arcade Neon essentials', () => {
     const geo = createTableGeometry();
     expect(geo.W).toBe(TABLE_W);
     expect(geo.H).toBe(TABLE_H);
@@ -154,7 +154,7 @@ describe('Matter.js fixed-step physics', () => {
     expect(geo.triggers.some((t) => t.id === 'loop_exit')).toBe(true);
     expect(geo.triggers.some((t) => t.id === 'inlane_left')).toBe(true);
     expect(geo.triggers.some((t) => t.id === 'outlane_right')).toBe(true);
-    expect(geo.targets.filter((t) => t.bank === 'CADET').length).toBe(5);
+    expect(geo.targets.filter((t) => t.bank === 'SNIPE').length).toBe(5);
     const left = geo.flippers.find((f) => f.side === 'left');
     expect(left.pivotX).toBeGreaterThan(40);
     expect(left.pivotX).toBeLessThan(TABLE_W / 2);

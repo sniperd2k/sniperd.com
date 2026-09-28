@@ -1,5 +1,5 @@
 /**
- * SniperD Pinball — Cadet MVP game controller (logic + HUD state).
+ * SniperD Pinball — Arcade Neon game controller (logic + HUD state).
  * Canvas-free core so tests can drive it without rendering.
  * Missions / multiball deferred; basic score + N-ball only.
  */
@@ -61,13 +61,13 @@ export function createGame(opts = {}) {
     powderBankHits: 0,
     powderValue: 1 * M,
     treeWellLit: false,
-    cadet: createLetterBank('CADET'),
+    snipe: createLetterBank('SNIPE'),
     // Stub banks so older HUD helpers / inject don't explode
     snow: createLetterBank('SNOW'),
     board: createLetterBank('BOARD'),
     lodge: createLetterBank('LODGE'),
     modes: createModeState(),
-    message: 'PULL PLUNGER — SniperD Cadet',
+    message: 'PULL PLUNGER — Arcade Neon',
     messageTimer: 180,
     triggerCooldown: Object.create(null),
     frame: 0,
@@ -139,13 +139,13 @@ function handleEvents(state, events) {
 
     if (ev.type === 'target') {
       if (!cooldownOk(state, `tgt-${ev.id}`, 30)) continue;
-      if (ev.bank === 'CADET') {
-        const r = spotLetter(state.cadet, ev.letter);
-        state.cadet = r.bank;
-        award(state, 250_000, `CADET ${ev.letter}`);
+      if (ev.bank === 'SNIPE') {
+        const r = spotLetter(state.snipe, ev.letter);
+        state.snipe = r.bank;
+        award(state, 250_000, `SNIPE ${ev.letter}`);
         if (r.completed) {
-          award(state, boardBonusValue(5), 'CADET COMPLETE');
-          msg(state, 'CADET COMPLETE — BONUS', 150);
+          award(state, boardBonusValue(5), 'SNIPE COMPLETE');
+          msg(state, 'SNIPE COMPLETE — BONUS', 150);
         }
       } else {
         award(state, 100_000, 'TARGET');
@@ -316,7 +316,7 @@ export function getHud(state) {
     scoreLabel: formatScore(state.score),
     balls: state.balls,
     message: state.messageTimer > 0 ? state.message : '',
-    cadet: state.cadet.lit.slice(),
+    snipe: state.snipe.lit.slice(),
     snow: state.snow.lit.slice(),
     board: state.board.lit.slice(),
     lodge: state.lodge.lit.slice(),
@@ -332,7 +332,7 @@ export function getHud(state) {
     gameOver: state.gameOver,
     ballInPlay: state.ballInPlay,
     chairliftClimb: state.chairliftClimb,
-    cadetLit: litCount(state.cadet),
+    snipeLit: litCount(state.snipe),
   };
 }
 
@@ -364,7 +364,7 @@ export function inject(state, patch = {}) {
     if (patch.multiball) state.modes.mode = ModeId.MULTIBALL;
   }
   if (patch.snowLit) state.snow.lit = patch.snowLit;
-  if (patch.cadetLit) state.cadet.lit = patch.cadetLit;
+  if (patch.snipeLit) state.snipe.lit = patch.snipeLit;
   if (patch.ball) {
     const b = state.ballsList[0];
     Object.assign(b, patch.ball);

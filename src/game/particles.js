@@ -1,5 +1,5 @@
 /**
- * Spark / plasma particle FX for Cadet table.
+ * Arcade Neon spark / plasma particle FX.
  */
 
 export function createParticleSystem() {

@@ -1,7 +1,7 @@
 /**
  * SniperD Pinball physics — Matter.js, fixed 60 Hz.
- * Original "Cadet" playfield (classic PC pinball–inspired feel).
- * No third-party layout coordinates or assets.
+ * Original "Arcade Neon" woodrail playfield (Italian-bottom classic).
+ * No third-party IP: no Williams/Bally/Gottlieb/Stern/MS Space Cadet assets.
  */
 
 import Matter from '../../assets/vendor/matter.mjs';
@@ -21,7 +21,7 @@ export const FIXED_DT_MS = 1000 / PHYSICS_HZ;
 export const FIXED_DT = FIXED_DT_MS / 1000;
 
 /**
- * Aggressively retuned for playable Cadet feel:
+ * Playable Arcade Neon feel:
  * strong hinged flippers (cradle/aim), punchy jets/slings,
  * lively ball that still drains cleanly.
  */
@@ -129,17 +129,17 @@ function segBody(seg, restitution) {
 }
 
 /**
- * Original Cadet layout — portrait classic PC pinball feel.
- * OPEN plunger exit (no dead-end cap), Italian-bottom drain,
- * dual flippers + mini, out/inlanes, slings, jet cluster,
- * standup CADET bank, left ramp + upper orbit.
+ * Original Arcade Neon woodrail layout — portrait Italian-bottom classic.
+ * OPEN plunger exit (no dead-end cap), dual flippers + mini,
+ * out/inlanes, slings, jet cluster, standup SNIPE bank,
+ * left ramp + upper orbit / loop.
  */
 export function createTableGeometry() {
   const W = TABLE_W;
   const H = TABLE_H;
 
   const walls = [
-    // Outer rails (full height right wall — plunger lane outer)
+    // Outer woodrails
     createSegment(18, 40, 18, H - 24, 'wall'),
     createSegment(W - 18, 40, W - 18, H - 40, 'wall'),
     createSegment(18, 40, W - 18, 40, 'wall'),
@@ -156,27 +156,26 @@ export function createTableGeometry() {
     createSegment(W - 122, H - 62, W - 60, H - 152, 'sling'),
     createSegment(W - 56, H - 96, W - 40, H - 54, 'wall'),
 
-    // Plunger skill lane — open left exit (no dead-end cap, no bounce-back plate).
-    // Floor shelf keeps failed plunges from draining. Crest-exit kick in stepPhysics
+    // Plunger skill lane — open left exit (no dead-end bounce-back).
+    // Floor shelf keeps failed plunges from draining. Crest-exit kick
     // sends strong shots into the upper PF / skill corridor.
     createSegment(W - 54, H - 52, W - 54, 95, 'lane'),
     createSegment(W - 18, H - 52, W - 18, 42, 'lane'),
     createSegment(W - 54, H - 52, W - 18, H - 52, 'lane'),
 
-    // Left ramp (two rails — visible chrome path)
+    // Left neon ramp (two rails)
     createSegment(36, 220, 102, 78, 'ramp'),
     createSegment(52, 228, 118, 88, 'ramp'),
-    // Ramp return apron (keeps ball from wedging under ramp)
     createSegment(102, 78, 118, 88, 'ramp'),
 
-    // Upper loop / orbit (top circuit)
+    // Upper loop / orbit (chrome circuit)
     createSegment(36, 78, 110, 58, 'orbit'),
     createSegment(110, 58, 230, 58, 'orbit'),
     createSegment(230, 58, 290, 75, 'orbit'),
     createSegment(290, 75, 290, 160, 'orbit'),
     createSegment(290, 160, 255, 185, 'orbit'),
 
-    // Mid guides — gentle, avoid dead pockets (short, open)
+    // Mid guides — short, open (avoid dead pockets)
     createSegment(88, H - 250, 100, H - 200, 'guide'),
     createSegment(250, H - 250, 262, H - 200, 'guide'),
   ];
@@ -190,7 +189,6 @@ export function createTableGeometry() {
   ];
 
   const triggers = [
-    // Skill shot sits in the exit arc of the plunger lane
     createCircleTrigger(W - 100, 70, 20, 'skill_shot'),
     createCircleTrigger(82, 90, 16, 'ramp_exit'),
     createCircleTrigger(270, 145, 14, 'loop_exit'),
@@ -201,16 +199,16 @@ export function createTableGeometry() {
     createCircleTrigger(W - 72, H - 52, 11, 'outlane_right'),
   ];
 
-  // Standup bank — CADET letters as vertical posts (can't perch on top)
+  // Standup bank — SNIPE letters as vertical posts
   const targets = [
-    { x: 42, y: 300, w: 10, h: 28, id: 'C', letter: 'C', bank: 'CADET' },
-    { x: 66, y: 292, w: 10, h: 28, id: 'A', letter: 'A', bank: 'CADET' },
-    { x: 90, y: 286, w: 10, h: 28, id: 'D', letter: 'D', bank: 'CADET' },
-    { x: 114, y: 292, w: 10, h: 28, id: 'E', letter: 'E', bank: 'CADET' },
-    { x: 138, y: 300, w: 10, h: 28, id: 'T', letter: 'T', bank: 'CADET' },
+    { x: 42, y: 300, w: 10, h: 28, id: 'S', letter: 'S', bank: 'SNIPE' },
+    { x: 66, y: 292, w: 10, h: 28, id: 'N', letter: 'N', bank: 'SNIPE' },
+    { x: 90, y: 286, w: 10, h: 28, id: 'I', letter: 'I', bank: 'SNIPE' },
+    { x: 114, y: 292, w: 10, h: 28, id: 'P', letter: 'P', bank: 'SNIPE' },
+    { x: 138, y: 300, w: 10, h: 28, id: 'E', letter: 'E', bank: 'SNIPE' },
   ];
 
-  // Slightly longer flippers, tighter gap for cradle / aim
+  // Longer flippers, tight gap for cradle / aim
   const flippers = [
     createFlipper(114, H - 56, 58, 0.52, -1.05, 'left'),
     createFlipper(246, H - 56, 58, Math.PI - 0.52, 1.05, 'right'),
@@ -232,7 +230,6 @@ export function createTableGeometry() {
     },
   });
   engine.enableSleeping = false;
-  // Tighter solver for rubber / flipper contacts
   engine.positionIterations = 8;
   engine.velocityIterations = 6;
 
@@ -414,10 +411,8 @@ function handlePair(geo, pair, isStart) {
     const flipper = flip.hit.plugin.flipper;
     const ballBody = flip.other;
     const omega = flipper.body?.angularVelocity || 0;
-    // Bat impulse when swinging toward the ball (cradle release / slap save)
     if (Math.abs(omega) > 0.06) {
       const power = Math.min(1.8, Math.abs(omega) * 3.0) * TUNING.flipperBatImpulse;
-      // Drive toward table center-up from this flipper's side
       const outward = flipper.side === 'right' || flipper.swing > 0 ? -1 : 1;
       Body.applyForce(ballBody, ballBody.position, {
         x: outward * power * 0.3,
@@ -440,7 +435,6 @@ function handlePair(geo, pair, isStart) {
   if (tgt && isBallLabel(tgt.other) && isStart) {
     const target = tgt.hit.plugin.target;
     const ballBody = tgt.other;
-    // Glance dump — keep standups from becoming a shelf
     Body.applyForce(ballBody, ballBody.position, { x: 0.012, y: 0.018 });
     if (!target._hit) {
       target._hit = true;
@@ -632,8 +626,7 @@ export function stepPhysics(world, dtSteps = 1) {
       if (!ball.active || ball.held) continue;
       syncBallFromBody(ball);
 
-      // Crest exit (one-shot gate): launch into PF left of the lane wall,
-      // then keep the ball from falling back into the open lane mouth.
+      // Crest exit (one-shot gate): launch into PF left of the lane wall
       if (ball.body && ball.x > TABLE_W - 60 && ball.y < 160 && ball.y > 40) {
         if (!ball._crestExited && ball.vy >= -1.2) {
           ball._crestExited = true;
@@ -650,7 +643,6 @@ export function stepPhysics(world, dtSteps = 1) {
           });
           syncBallFromBody(ball);
         } else if (ball._crestExited) {
-          // One-way: push back out if re-entering the lane mouth
           Body.setPosition(ball.body, {
             x: Math.min(ball.x, TABLE_W - 70),
             y: ball.y,
@@ -665,7 +657,6 @@ export function stepPhysics(world, dtSteps = 1) {
         }
       }
 
-      // Soft velocity clamp — prevent tunneling without killing punch
       const spd = Math.hypot(ball.vx, ball.vy);
       if (spd > 28 && ball.body) {
         const s = 28 / spd;
