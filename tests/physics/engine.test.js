@@ -21,7 +21,7 @@ function worldWithBall(ball, geo = createTableGeometry()) {
 }
 
 describe('Matter.js fixed-step physics', () => {
-  it('exposes ~120 Hz fixed timestep and downhill tilt gravity', () => {
+  it('exposes ~60/120 Hz fixed timestep and downhill tilt gravity', () => {
     expect(PHYSICS_HZ).toBeGreaterThanOrEqual(60);
     expect(PHYSICS_HZ).toBeLessThanOrEqual(120);
     expect([60, 120]).toContain(PHYSICS_HZ);
@@ -138,23 +138,26 @@ describe('Matter.js fixed-step physics', () => {
     expect(ball.active).toBe(false);
   });
 
-  it('layout includes Italian-bottom essentials', () => {
+  it('layout includes Cadet essentials', () => {
     const geo = createTableGeometry();
     expect(geo.W).toBe(TABLE_W);
     expect(geo.H).toBe(TABLE_H);
     expect(geo.flippers.filter((f) => f.side === 'left' || f.side === 'right').length).toBe(2);
-    expect(geo.bumpers.length).toBeGreaterThanOrEqual(5);
+    expect(geo.bumpers.length).toBeGreaterThanOrEqual(3);
     expect(geo.walls.some((w) => w.kind === 'sling')).toBe(true);
     expect(geo.walls.some((w) => w.kind === 'ramp')).toBe(true);
     expect(geo.walls.some((w) => w.kind === 'orbit')).toBe(true);
-    expect(geo.walls.some((w) => w.kind === 'fan')).toBe(true);
-    expect(geo.triggers.some((t) => t.id === 'chairlift_scoop')).toBe(true);
-    expect(geo.triggers.some((t) => t.id === 'vault')).toBe(true);
-    expect(geo.triggers.some((t) => t.id === 'tree_well')).toBe(true);
-    expect(geo.targets.filter((t) => t.bank === 'BOARD').length).toBe(5);
-    // flippers inset from outer walls
+    expect(geo.walls.some((w) => w.kind === 'lane')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'skill_shot')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'saucer')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'ramp_exit')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'loop_exit')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'inlane_left')).toBe(true);
+    expect(geo.triggers.some((t) => t.id === 'outlane_right')).toBe(true);
+    expect(geo.targets.filter((t) => t.bank === 'CADET').length).toBe(5);
     const left = geo.flippers.find((f) => f.side === 'left');
     expect(left.pivotX).toBeGreaterThan(40);
     expect(left.pivotX).toBeLessThan(TABLE_W / 2);
+    expect(geo.plunger.x).toBeGreaterThan(TABLE_W * 0.8);
   });
 });

@@ -3,17 +3,20 @@ import { createSfx, PRESETS } from '../../src/game/sfx.js';
 import { createGame, tick, tryLaunch, drainSfx, inject } from '../../src/game/game.js';
 
 describe('SFX synth', () => {
-  it('exposes expected presets', () => {
+  it('exposes expected Cadet presets', () => {
     const sfx = createSfx({ muted: true });
     for (const name of [
       'flipper',
       'bumper',
       'ramp',
       'plunger',
+      'saucer',
       'treeWell',
       'multiball',
       'scoring',
+      'spark',
       'snow',
+      'hum',
       'wind',
     ]) {
       expect(sfx.presets).toContain(name);
@@ -42,11 +45,11 @@ describe('SFX synth', () => {
     sfx.onEvents(
       [
         { type: 'flipper', side: 'left' },
-        { type: 'bumper', id: 'powder0' },
+        { type: 'bumper', id: 'jet0' },
         { type: 'ramp_contact' },
-        { type: 'trigger', id: 'tree_well' },
+        { type: 'trigger', id: 'saucer' },
       ],
-      { launch: true, score: true, multiball: true, snow: true }
+      { launch: true, score: true, multiball: true, spark: true }
     );
     const names = sfx.getLog().map((e) => e.name);
     expect(names).toContain('flipper');
@@ -54,6 +57,7 @@ describe('SFX synth', () => {
     expect(names).toContain('plunger');
     expect(names).toContain('scoring');
     expect(names).toContain('multiball');
+    expect(names).toContain('saucer');
   });
 
   it('game queues sfx cues on launch and score', () => {
@@ -68,6 +72,6 @@ describe('SFX synth', () => {
     for (let i = 0; i < 25; i++) tick(g);
     const cues = drainSfx(g);
     expect(cues.length).toBeGreaterThan(0);
-    expect(cues.some((c) => c === 'scoring' || c === 'snow' || c === 'bumper')).toBe(true);
+    expect(cues.some((c) => c === 'scoring' || c === 'spark' || c === 'bumper')).toBe(true);
   });
 });

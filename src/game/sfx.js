@@ -1,18 +1,22 @@
 /**
- * Web Audio synth SFX for SniperD Pinball.
+ * Web Audio synth SFX — original SniperD Cadet banks (no sampled assets).
  * Unlock on first user gesture. Mute/gate for headless tests.
  */
 
 const PRESETS = {
-  flipper: { type: 'square', freq: 180, freqEnd: 90, dur: 0.06, gain: 0.12 },
-  bumper: { type: 'triangle', freq: 420, freqEnd: 180, dur: 0.09, gain: 0.14 },
-  ramp: { type: 'sawtooth', freq: 260, freqEnd: 520, dur: 0.14, gain: 0.08 },
-  plunger: { type: 'square', freq: 90, freqEnd: 40, dur: 0.12, gain: 0.16 },
-  treeWell: { type: 'sine', freq: 220, freqEnd: 110, dur: 0.22, gain: 0.14 },
-  multiball: { type: 'square', freq: 330, freqEnd: 660, dur: 0.35, gain: 0.12 },
-  scoring: { type: 'sine', freq: 660, freqEnd: 880, dur: 0.1, gain: 0.09 },
-  snow: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.25, gain: 0.035 },
-  wind: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.8, gain: 0.02 },
+  flipper: { type: 'square', freq: 210, freqEnd: 95, dur: 0.055, gain: 0.11 },
+  bumper: { type: 'triangle', freq: 480, freqEnd: 160, dur: 0.08, gain: 0.13 },
+  ramp: { type: 'sawtooth', freq: 240, freqEnd: 560, dur: 0.16, gain: 0.07 },
+  plunger: { type: 'square', freq: 100, freqEnd: 45, dur: 0.11, gain: 0.15 },
+  saucer: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
+  // Kept for API / hunt / older cues — remapped tones for Cadet
+  treeWell: { type: 'sine', freq: 280, freqEnd: 140, dur: 0.2, gain: 0.13 },
+  multiball: { type: 'square', freq: 300, freqEnd: 600, dur: 0.28, gain: 0.1 },
+  scoring: { type: 'sine', freq: 720, freqEnd: 960, dur: 0.09, gain: 0.08 },
+  spark: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.12, gain: 0.03 },
+  snow: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.12, gain: 0.03 },
+  hum: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.015 },
+  wind: { type: 'noise', freq: 0, freqEnd: 0, dur: 0.9, gain: 0.015 },
 };
 
 export function createSfx(opts = {}) {
@@ -46,16 +50,15 @@ export function createSfx(opts = {}) {
       ctx.resume().catch(() => {});
     }
     state.unlocked = true;
-    // subtle ambient wind after unlock (gated if muted)
-    startWind();
+    startHum();
     return true;
   }
 
   function setMuted(m) {
     state.muted = !!m;
     if (state.master) state.master.gain.value = state.muted ? 0 : 0.7;
-    if (state.muted) stopWind();
-    else if (state.unlocked) startWind();
+    if (state.muted) stopHum();
+    else if (state.unlocked) startHum();
   }
 
   function isMuted() {
@@ -94,7 +97,9 @@ export function createSfx(opts = {}) {
     if (!ctx || !state.unlocked) return false;
     const preset = PRESETS[name];
     if (!preset) return false;
-    if (!cooldownOk(name, name === 'bumper' ? 40 : name === 'snow' ? 120 : 25)) return false;
+    const coolMs =
+      name === 'bumper' ? 40 : name === 'spark' || name === 'snow' ? 100 : 25;
+    if (!cooldownOk(name, coolMs)) return false;
 
     const now = ctx.currentTime;
     const g = ctx.createGain();
@@ -107,8 +112,8 @@ export function createSfx(opts = {}) {
       const src = ctx.createBufferSource();
       src.buffer = makeNoiseBuffer(ctx, preset.dur + 0.05);
       const filter = ctx.createBiquadFilter();
-      filter.type = name === 'wind' ? 'lowpass' : 'highpass';
-      filter.frequency.value = name === 'wind' ? 400 : 2500;
+      filter.type = name === 'hum' || name === 'wind' ? 'lowpass' : 'highpass';
+      filter.frequency.value = name === 'hum' || name === 'wind' ? 280 : 3200;
       src.connect(filter);
       filter.connect(g);
       src.start(now);
@@ -125,7 +130,7 @@ export function createSfx(opts = {}) {
     return true;
   }
 
-  function startWind() {
+  function startHum() {
     if (state.muted || state.windNode || !state.ctx || !state.unlocked) return;
     const ctx = state.ctx;
     const src = ctx.createBufferSource();
@@ -133,10 +138,10 @@ export function createSfx(opts = {}) {
     src.loop = true;
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 350;
-    filter.Q.value = 0.6;
+    filter.frequency.value = 220;
+    filter.Q.value = 0.5;
     const g = ctx.createGain();
-    g.gain.value = 0.018;
+    g.gain.value = 0.014;
     src.connect(filter);
     filter.connect(g);
     g.connect(state.master);
@@ -144,7 +149,7 @@ export function createSfx(opts = {}) {
     state.windNode = { src, g, filter };
   }
 
-  function stopWind() {
+  function stopHum() {
     if (!state.windNode) return;
     try {
       state.windNode.src.stop();
@@ -159,17 +164,25 @@ export function createSfx(opts = {}) {
     for (const ev of events) {
       if (ev.type === 'flipper') play('flipper');
       else if (ev.type === 'bumper') play('bumper');
+      else if (ev.type === 'sling') play('bumper');
       else if (ev.type === 'ramp_contact') play('ramp');
       else if (ev.type === 'trigger') {
-        if (ev.id === 'tree_well') play('treeWell');
-        else if (ev.id === 'powder_plus_exit' || ev.id === 'pipe_exit' || ev.id === 'chairlift_scoop')
+        if (ev.id === 'saucer' || ev.id === 'tree_well') play('saucer');
+        else if (
+          ev.id === 'ramp_exit' ||
+          ev.id === 'loop_exit' ||
+          ev.id === 'skill_shot' ||
+          ev.id === 'powder_plus_exit' ||
+          ev.id === 'pipe_exit' ||
+          ev.id === 'chairlift_scoop'
+        )
           play('ramp');
       }
     }
     if (extras.launch) play('plunger');
     if (extras.score) play('scoring');
     if (extras.multiball) play('multiball');
-    if (extras.snow) play('snow');
+    if (extras.snow || extras.spark) play('spark');
   }
 
   function play(name) {

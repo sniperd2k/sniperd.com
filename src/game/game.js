@@ -1,6 +1,7 @@
 /**
- * SniperD Pinball — main game controller (logic + HUD state).
+ * SniperD Pinball — Cadet MVP game controller (logic + HUD state).
  * Canvas-free core so tests can drive it without rendering.
+ * Missions / multiball deferred; basic score + N-ball only.
  */
 
 import {
@@ -11,23 +12,18 @@ import {
   powderBumperValue,
   treeWellCollect,
   boardBonusValue,
-  snowCollectValue,
   pipeRampValue,
   peakAwardByIndex,
-  multiballJackpot,
   applyScore,
   formatScore,
 } from './scoring.js';
-import { createLetterBank, spotLetter, spotNext, litCount } from './letters.js';
+import { createLetterBank, spotLetter, litCount } from './letters.js';
 import { plungerPower } from './plunger.js';
 import {
   createModeState,
   lightPeakAward,
   tickPeakTimer,
   rotatePeakAward,
-  openLodge,
-  addLock,
-  startMultiball,
   onBallDrain,
   bumpModeProgress,
   ModeId,
@@ -45,7 +41,7 @@ import {
   TABLE_H,
   PHYSICS_HZ,
 } from './physics.js';
-import { createParticleSystem, emitSnow, stepParticles } from './particles.js';
+import { createParticleSystem, emitSparks, stepParticles } from './particles.js';
 
 export function createGame(opts = {}) {
   const geometry = createTableGeometry();
@@ -59,16 +55,19 @@ export function createGame(opts = {}) {
     gameOver: false,
     lastAward: 0,
     lastReason: '',
+    // Counters kept for turbo hunt invariants / scoring helpers
     chairliftClimb: 0,
     powderPlusHits: 0,
     powderBankHits: 0,
     powderValue: 1 * M,
     treeWellLit: false,
+    cadet: createLetterBank('CADET'),
+    // Stub banks so older HUD helpers / inject don't explode
     snow: createLetterBank('SNOW'),
     board: createLetterBank('BOARD'),
     lodge: createLetterBank('LODGE'),
     modes: createModeState(),
-    message: 'PULL PLUNGER — SniperD Pinball',
+    message: 'PULL PLUNGER — SniperD Cadet',
     messageTimer: 180,
     triggerCooldown: Object.create(null),
     frame: 0,
@@ -119,36 +118,37 @@ function cooldownOk(state, id, frames = 20) {
 }
 
 function handleEvents(state, events) {
-  const heavy = state.modes.multiball;
+  const heavy = false;
   for (const ev of events) {
     if (ev.type === 'bumper') {
       if (!cooldownOk(state, ev.id, 10)) continue;
       const val = powderBumperValue(state.powderBankHits);
       state.powderBankHits += 1;
       state.powderValue = Math.min(4 * M, val);
-      award(state, val, 'POWDER BANK');
+      award(state, val, 'JET BUMPER');
       state.modes = rotatePeakAward(state.modes);
-      if (ev.ball) emitSnow(state.particles, ev.ball.x, ev.ball.y, 8, heavy);
-      pushSfx(state, 'snow');
+      if (ev.ball) emitSparks(state.particles, ev.ball.x, ev.ball.y, 8, heavy);
+      pushSfx(state, 'spark');
+    }
+
+    if (ev.type === 'sling') {
+      if (!cooldownOk(state, 'sling', 12)) continue;
+      award(state, 25_000, 'SLING');
+      pushSfx(state, 'bumper');
     }
 
     if (ev.type === 'target') {
       if (!cooldownOk(state, `tgt-${ev.id}`, 30)) continue;
-      if (ev.bank === 'BOARD') {
-        const r = spotLetter(state.board, ev.letter);
-        state.board = r.bank;
-        award(state, 250_000, `BOARD ${ev.letter}`);
+      if (ev.bank === 'CADET') {
+        const r = spotLetter(state.cadet, ev.letter);
+        state.cadet = r.bank;
+        award(state, 250_000, `CADET ${ev.letter}`);
         if (r.completed) {
-          award(state, boardBonusValue(5), 'BOARD COMPLETE');
+          award(state, boardBonusValue(5), 'CADET COMPLETE');
+          msg(state, 'CADET COMPLETE — BONUS', 150);
         }
-      } else if (ev.bank === 'LODGE') {
-        const r = spotLetter(state.lodge, ev.letter);
-        state.lodge = r.bank;
-        award(state, 250_000, `LODGE ${ev.letter}`);
-        if (r.completed) {
-          state.modes = openLodge(state.modes);
-          msg(state, 'LODGE OPEN — LOCK BALLS AT VAULT', 180);
-        }
+      } else {
+        award(state, 100_000, 'TARGET');
       }
     }
 
@@ -161,7 +161,11 @@ function handleEvents(state, events) {
     }
 
     if (ev.type === 'ramp_contact' && ev.ball) {
-      emitSnow(state.particles, ev.ball.x, ev.ball.y, 4, heavy);
+      emitSparks(state.particles, ev.ball.x, ev.ball.y, 4, heavy);
+    }
+
+    if (ev.type === 'flipper') {
+      pushSfx(state, 'flipper');
     }
   }
 }
@@ -170,31 +174,20 @@ function handleTrigger(state, ev) {
   const id = ev.id;
   if (!cooldownOk(state, id, 40)) return;
   const ball = ev.ball;
-  const heavy = state.modes.multiball;
 
   switch (id) {
-    case 'chairlift_scoop': {
-      if (state.modes.multiball && state.modes.jackpotLit) {
-        award(state, multiballJackpot(5 * M, 1), 'CHAIRLIFT JACKPOT');
-      } else if (state._skillShotArmed) {
+    case 'skill_shot': {
+      if (state._skillShotArmed) {
         const v = chairliftScoopValue(state.chairliftClimb);
-        award(state, v, 'SKILL SHOT CHAIRLIFT');
+        award(state, v, 'SKILL SHOT');
         state.chairliftClimb = nextChairliftClimb(state.chairliftClimb);
         state._skillShotArmed = false;
-      } else if (litCount(state.snow) === 0 && state.snow.completions > 0) {
-        // just completed elsewhere — ignore
+      } else {
+        award(state, 150_000, 'LANE');
       }
-      // SNOW collect when all lit... actually collect when completing SNOW at scoop
-      // If player has been spotting SNOW and completes via ramp, scoop pays
-      if (state.snow._readyCollect) {
-        const v = snowCollectValue(state.snow.completions);
-        award(state, v, 'SNOW COLLECT');
-        state.snow._readyCollect = false;
-      }
-      // kickout left into playfield (no teleport)
       if (ball) {
-        kickBall(ball, state.geometry, -6, 2);
-        emitSnow(state.particles, ball.x, ball.y, 12, heavy);
+        kickBall(ball, state.geometry, -5, 1);
+        emitSparks(state.particles, ball.x, ball.y, 10, false);
       }
       if (state.modes.peakLit) {
         const peak = peakAwardByIndex(state.modes.peakAwardIndex);
@@ -203,96 +196,47 @@ function handleTrigger(state, ev) {
       }
       break;
     }
-    case 'powder_plus_exit': {
+    case 'ramp_exit': {
       const v = powderPlusRampValue(state.powderPlusHits);
       state.powderPlusHits += 1;
-      award(state, v, 'POWDER PLUS');
-      const r = spotNext(state.snow);
-      state.snow = r.bank;
-      if (r.completed) {
-        state.snow._readyCollect = true;
-        msg(state, 'SNOW LIT — COLLECT AT CHAIRLIFT', 150);
-      }
-      // kick toward mini-flipper from ramp exit (impulse, stay near exit)
-      if (ball) {
-        kickBall(ball, state.geometry, 3, 1);
-      }
-      emitSnow(state.particles, ball?.x || 70, ball?.y || 95, 10, heavy);
-      break;
-    }
-    case 'pipe_exit': {
+      award(state, v, 'RAMP');
       state.modes = bumpModeProgress(state.modes, 1);
-      award(state, pipeRampValue(state.modes.modeProgress), 'CENTER PIPE');
-      if (ball) {
-        // pipe exit impulse — alternate feed toward mini-flipper via velocity only
-        if (state.modes.modeProgress % 2 === 0) {
-          kickBall(ball, state.geometry, -2, 1);
-        } else {
-          kickBall(ball, state.geometry, 2, 2);
-        }
-      }
-      emitSnow(state.particles, ball?.x || 190, ball?.y || 70, 8, heavy);
+      if (ball) kickBall(ball, state.geometry, 3, 1);
+      emitSparks(state.particles, ball?.x || 78, ball?.y || 96, 10, false);
+      pushSfx(state, 'ramp');
       break;
     }
-    case 'tree_well': {
+    case 'loop_exit': {
+      state.modes = bumpModeProgress(state.modes, 1);
+      award(state, pipeRampValue(state.modes.modeProgress), 'LOOP');
+      if (ball) kickBall(ball, state.geometry, -2, 2);
+      emitSparks(state.particles, ball?.x || 268, ball?.y || 148, 8, false);
+      pushSfx(state, 'ramp');
+      break;
+    }
+    case 'saucer': {
       const v = treeWellCollect(state.powderValue, state.treeWellLit);
-      award(state, v || state.powderValue, state.treeWellLit ? 'TREE WELL 5×' : 'TREE WELL');
-      pushSfx(state, 'treeWell');
+      award(state, v || state.powderValue, state.treeWellLit ? 'SAUCER 5×' : 'SAUCER');
+      pushSfx(state, 'saucer');
       state.treeWellLit = false;
-      if (ball) {
-        // kickout from Tree Well toward lower right (impulse, no teleport)
-        kickBall(ball, state.geometry, -4, 5);
-      }
-      break;
-    }
-    case 'vault': {
-      if (state.modes.lodgeOpen || state.modes.powderMultiballReady) {
-        state.modes = addLock(state.modes);
-        award(state, 1 * M, `LOCK ${state.modes.locks}`);
-        if (state.modes.locks >= state.modes.locksNeeded) {
-          state.modes = startMultiball(state.modes, 3);
-          // spawn extra balls
-          for (let i = state.ballsList.length; i < 3; i++) {
-            const b = createBall(180 + i * 10, 200, (i - 1) * 2, -10);
-            b.held = false;
-            state.ballsList.push(b);
-            applyBallState(state.geometry, b);
-          }
-          msg(state, 'POWDER MULTIBALL!', 200);
-          pushSfx(state, 'multiball');
-        } else if (ball) {
-          ball.active = false;
-          ball.held = true;
-          state._vaultKickAt = state.frame + 24;
-          state._vaultKickBall = ball;
-        }
-      } else if (state.modes.multiball && state.modes.jackpotLit) {
-        award(state, multiballJackpot(10 * M, state.modes.ballsInPlay), 'VAULT JACKPOT');
-      } else {
-        award(state, 100_000, 'VAULT');
-      }
+      if (ball) kickBall(ball, state.geometry, -3, 4);
       break;
     }
     case 'inlane_left':
     case 'inlane_right':
       state.modes = lightPeakAward(state.modes, 300);
-      msg(state, 'PEAK AWARD LIT', 90);
+      state.treeWellLit = true;
+      msg(state, 'BONUS LIT', 90);
       break;
     case 'outlane_left':
     case 'outlane_right':
       state.modes = lightPeakAward(state.modes, 180);
       break;
-    case 'orbit_left':
-    case 'orbit_right':
-      award(state, 150_000, 'ORBIT');
-      emitSnow(state.particles, ball?.x || 180, ball?.y || 100, 6, heavy);
-      break;
     default:
       break;
   }
 
-  // Mini-flipper path lights tree well
-  if (id === 'powder_plus_exit' || id === 'pipe_exit') {
+  if (id === 'ramp_exit' || id === 'loop_exit') {
     state.treeWellLit = true;
   }
 }
@@ -304,7 +248,6 @@ function handleDrain(state, ball) {
     msg(state, 'BALL DRAINED', 60);
     return;
   }
-  // end ball
   state.ballInPlay = false;
   state.powderPlusHits = 0;
   state.powderBankHits = 0;
@@ -318,7 +261,6 @@ function handleDrain(state, ball) {
   } else {
     msg(state, `BALL ${4 - state.balls} — PULL PLUNGER`, 180);
     placeBallInPlunger(ball || state.ballsList[0], state.geometry);
-    // reset extra balls
     state.ballsList = [state.ballsList[0]];
     state.ballsList[0].active = true;
   }
@@ -334,7 +276,6 @@ export function setFlippersFromInput(state, input) {
 
 export function tryLaunch(state, pullNorm) {
   if (state.gameOver) {
-    // restart
     Object.assign(state, createGame({ seed: state.seed }));
     return;
   }
@@ -347,7 +288,7 @@ export function tryLaunch(state, pullNorm) {
     return;
   }
   state.ballInPlay = true;
-  msg(state, 'SKILL SHOT — CHAIRLIFT!', 100);
+  msg(state, 'SKILL SHOT — AIM THE LANE!', 100);
   pushSfx(state, 'plunger');
 }
 
@@ -360,18 +301,6 @@ export function tick(state, input = null) {
   state.modes = tickPeakTimer(state.modes);
 
   if (input) setFlippersFromInput(state, input);
-
-  if (state._vaultKickAt && state.frame >= state._vaultKickAt && state._vaultKickBall) {
-    const ball = state._vaultKickBall;
-    state._vaultKickAt = 0;
-    state._vaultKickBall = null;
-    if (!state.modes.multiball) {
-      placeBallInPlunger(ball, state.geometry);
-      ball.held = false;
-      launchFromPlunger(ball, state.geometry, 0.6, plungerPower);
-      state.ballInPlay = true;
-    }
-  }
 
   const world = { balls: state.ballsList, geometry: state.geometry };
   const events = stepPhysics(world, 1);
@@ -387,6 +316,7 @@ export function getHud(state) {
     scoreLabel: formatScore(state.score),
     balls: state.balls,
     message: state.messageTimer > 0 ? state.message : '',
+    cadet: state.cadet.lit.slice(),
     snow: state.snow.lit.slice(),
     board: state.board.lit.slice(),
     lodge: state.lodge.lit.slice(),
@@ -402,6 +332,7 @@ export function getHud(state) {
     gameOver: state.gameOver,
     ballInPlay: state.ballInPlay,
     chairliftClimb: state.chairliftClimb,
+    cadetLit: litCount(state.cadet),
   };
 }
 
@@ -433,6 +364,7 @@ export function inject(state, patch = {}) {
     if (patch.multiball) state.modes.mode = ModeId.MULTIBALL;
   }
   if (patch.snowLit) state.snow.lit = patch.snowLit;
+  if (patch.cadetLit) state.cadet.lit = patch.cadetLit;
   if (patch.ball) {
     const b = state.ballsList[0];
     Object.assign(b, patch.ball);

@@ -1,7 +1,7 @@
 /**
- * SniperD Pinball physics — Matter.js, fixed ~120 Hz, downhill tilt gravity.
- * Vendored Matter via assets/vendor (browser script tag / vitest setup).
- * Real collision responses; hinged flippers with angle stops + short impulse.
+ * SniperD Pinball physics — Matter.js, fixed 60 Hz.
+ * Original "Cadet" playfield (classic PC pinball–inspired feel).
+ * No third-party layout coordinates or assets.
  */
 
 import Matter from '../../assets/vendor/matter.mjs';
@@ -14,28 +14,23 @@ export const BALL_R = 8;
 
 /**
  * Fixed timestep. Matter.js uses per-step velocities (px/tick), so we align
- * the engine update to 60 Hz (Matter base delta). Solver is still fixed-step;
- * bump to 120 with half-velocity if mobile perf allows later.
+ * the engine update to 60 Hz (Matter base delta).
  */
 export const PHYSICS_HZ = 60;
 export const FIXED_DT_MS = 1000 / PHYSICS_HZ;
 export const FIXED_DT = FIXED_DT_MS / 1000;
 
-/**
- * Tunable Zaccaria / Pinball FX–style params.
- * Gravity is downhill tilt along the playfield (+Y toward drain).
- */
+/** Tunable table-tilt params (original SniperD Cadet feel). */
 export const TUNING = {
   gravityX: 0,
   gravityY: 1,
-  // Matter gravity: force += mass * y * scale; scale~0.001 is table tilt feel
   gravityScale: 0.00095,
-  flipperPower: 0.55,       // angle tracking gain
+  flipperPower: 0.55,
   flipperReturn: 0.28,
-  flipperMaxOmega: 0.55,    // rad per Matter step (NOT rad/s)
+  flipperMaxOmega: 0.55,
   rubberRestitution: 0.85,
   wallRestitution: 0.72,
-  bumperKick: 0.08,         // Matter force units
+  bumperKick: 0.08,
   bumperRestitution: 1.2,
   ballFriction: 0.001,
   ballFrictionAir: 0.02,
@@ -126,89 +121,86 @@ function segBody(seg, restitution) {
 }
 
 /**
- * Italian Bottom + mobile-classic layout (portrait).
+ * Original Cadet layout — portrait mobile classic PC pinball feel.
+ * Plunger skill lane, dual flippers, out/inlanes, slings, jet bumpers,
+ * standup targets, left ramp + upper loop. Invented coordinates only.
  */
 export function createTableGeometry() {
   const W = TABLE_W;
   const H = TABLE_H;
 
   const walls = [
-    createSegment(22, 44, 22, H - 28, 'wall'),
-    createSegment(W - 22, 44, W - 22, H - 90, 'wall'),
-    createSegment(22, 44, W - 22, 44, 'wall'),
-    createSegment(22, H - 28, 105, H - 10, 'wall'),
-    createSegment(W - 95, H - 10, W - 52, H - 88, 'wall'),
-    createSegment(22, H - 150, 48, H - 70, 'wall'),
-    createSegment(58, H - 145, 108, H - 58, 'sling'),
-    createSegment(W - 118, H - 58, W - 58, H - 140, 'sling'),
-    createSegment(W - 55, H - 88, W - 40, H - 50, 'wall'),
-    createSegment(W - 46, H - 88, W - 46, 115, 'lane'),
-    createSegment(W - 20, H - 88, W - 20, 115, 'lane'),
-    createSegment(W - 46, 115, W - 20, 115, 'lane'),
-    createSegment(36, 200, 95, 95, 'ramp'),
-    createSegment(48, 208, 108, 105, 'ramp'),
-    createSegment(145, 175, 175, 78, 'ramp'),
-    createSegment(195, 175, 215, 78, 'ramp'),
-    createSegment(40, 70, 120, 55, 'orbit'),
-    createSegment(120, 55, 240, 55, 'orbit'),
-    createSegment(240, 55, 310, 75, 'orbit'),
-    createSegment(310, 75, 310, 160, 'orbit'),
-    createSegment(70, H - 210, 85, H - 165, 'fan'),
-    createSegment(100, H - 215, 112, H - 168, 'fan'),
-    createSegment(130, H - 218, 140, H - 170, 'fan'),
-    createSegment(160, H - 218, 170, H - 170, 'fan'),
-    createSegment(190, H - 215, 202, H - 168, 'fan'),
-    createSegment(220, H - 210, 235, H - 165, 'fan'),
-    createSegment(250, H - 200, 262, H - 160, 'fan'),
-    createSegment(80, H - 250, 95, H - 220, 'fan'),
-    createSegment(230, H - 250, 245, H - 220, 'fan'),
+    // Outer rails
+    createSegment(20, 42, 20, H - 26, 'wall'),
+    createSegment(W - 20, 42, W - 20, 108, 'wall'),
+    createSegment(20, 42, W - 20, 42, 'wall'),
+    // Drain gutters
+    createSegment(20, H - 26, 102, H - 8, 'wall'),
+    createSegment(W - 100, H - 8, W - 52, H - 92, 'wall'),
+    // Left outlane / inlane guides
+    createSegment(20, H - 155, 50, H - 72, 'wall'),
+    createSegment(56, H - 148, 108, H - 60, 'sling'),
+    // Right sling + outlane toward plunger
+    createSegment(W - 118, H - 60, W - 56, H - 142, 'sling'),
+    createSegment(W - 54, H - 92, W - 38, H - 52, 'wall'),
+    // Plunger skill lane
+    createSegment(W - 48, H - 92, W - 48, 108, 'lane'),
+    createSegment(W - 20, H - 92, W - 20, 108, 'lane'),
+    createSegment(W - 48, 108, W - 20, 108, 'lane'),
+    // Left ramp (two rails)
+    createSegment(38, 210, 98, 88, 'ramp'),
+    createSegment(52, 218, 112, 98, 'ramp'),
+    // Upper loop / orbit (top circuit)
+    createSegment(42, 78, 118, 54, 'orbit'),
+    createSegment(118, 54, 248, 54, 'orbit'),
+    createSegment(248, 54, 318, 78, 'orbit'),
+    createSegment(318, 78, 318, 155, 'orbit'),
+    createSegment(318, 155, 288, 175, 'orbit'),
+    // Mid-table guides (keep ball flowing, avoid dead pockets)
+    createSegment(78, H - 230, 92, H - 175, 'guide'),
+    createSegment(248, H - 230, 262, H - 175, 'guide'),
+    createSegment(100, 340, 118, 300, 'guide'),
+    createSegment(230, 340, 248, 300, 'guide'),
   ];
 
   const bumpers = [
-    createBumper(115, 235, 17, 'powder0'),
-    createBumper(175, 210, 18, 'powder1'),
-    createBumper(235, 235, 17, 'powder2'),
-    createBumper(140, 285, 15, 'powder3'),
-    createBumper(210, 285, 15, 'powder4'),
+    createBumper(128, 228, 17, 'jet0'),
+    createBumper(196, 208, 18, 'jet1'),
+    createBumper(162, 278, 16, 'jet2'),
+    createBumper(240, 268, 15, 'jet3'),
+    createBumper(110, 292, 14, 'jet4'),
   ];
 
   const triggers = [
-    createCircleTrigger(W - 33, 100, 16, 'chairlift_scoop'),
-    createCircleTrigger(72, 92, 18, 'powder_plus_exit'),
-    createCircleTrigger(195, 72, 16, 'pipe_exit'),
-    createCircleTrigger(285, 355, 20, 'tree_well'),
-    createCircleTrigger(175, 145, 18, 'vault'),
-    createCircleTrigger(52, H - 155, 12, 'inlane_left'),
-    createCircleTrigger(W - 105, H - 155, 12, 'inlane_right'),
-    createCircleTrigger(36, H - 55, 12, 'outlane_left'),
-    createCircleTrigger(W - 68, H - 48, 12, 'outlane_right'),
-    createCircleTrigger(55, 100, 12, 'orbit_left'),
-    createCircleTrigger(300, 120, 12, 'orbit_right'),
+    createCircleTrigger(W - 34, 98, 15, 'skill_shot'),
+    createCircleTrigger(78, 96, 16, 'ramp_exit'),
+    createCircleTrigger(268, 148, 14, 'loop_exit'),
+    createCircleTrigger(180, 155, 16, 'saucer'),
+    createCircleTrigger(52, H - 158, 11, 'inlane_left'),
+    createCircleTrigger(W - 108, H - 158, 11, 'inlane_right'),
+    createCircleTrigger(34, H - 58, 11, 'outlane_left'),
+    createCircleTrigger(W - 70, H - 52, 11, 'outlane_right'),
   ];
 
+  // Standup bank — CADET letters (original spelling, not MS branding)
   const targets = [
-    { x: 55, y: 330, w: 16, h: 11, id: 'B', letter: 'B', bank: 'BOARD' },
-    { x: 78, y: 328, w: 16, h: 11, id: 'O', letter: 'O', bank: 'BOARD' },
-    { x: 101, y: 326, w: 16, h: 11, id: 'A', letter: 'A', bank: 'BOARD' },
-    { x: 124, y: 328, w: 16, h: 11, id: 'R', letter: 'R', bank: 'BOARD' },
-    { x: 147, y: 330, w: 16, h: 11, id: 'D', letter: 'D', bank: 'BOARD' },
-    { x: 68, y: 385, w: 16, h: 11, id: 'L', letter: 'L', bank: 'LODGE' },
-    { x: 91, y: 383, w: 16, h: 11, id: 'O2', letter: 'O', bank: 'LODGE' },
-    { x: 114, y: 381, w: 16, h: 11, id: 'D2', letter: 'D', bank: 'LODGE' },
-    { x: 137, y: 383, w: 16, h: 11, id: 'G', letter: 'G', bank: 'LODGE' },
-    { x: 160, y: 385, w: 16, h: 11, id: 'E', letter: 'E', bank: 'LODGE' },
+    { x: 58, y: 348, w: 16, h: 11, id: 'C', letter: 'C', bank: 'CADET' },
+    { x: 80, y: 346, w: 16, h: 11, id: 'A', letter: 'A', bank: 'CADET' },
+    { x: 102, y: 344, w: 16, h: 11, id: 'D', letter: 'D', bank: 'CADET' },
+    { x: 124, y: 346, w: 16, h: 11, id: 'E', letter: 'E', bank: 'CADET' },
+    { x: 146, y: 348, w: 16, h: 11, id: 'T', letter: 'T', bank: 'CADET' },
   ];
 
   const flippers = [
     createFlipper(118, H - 58, 54, 0.55, -0.95, 'left'),
     createFlipper(242, H - 58, 54, Math.PI - 0.55, 0.95, 'right'),
-    createFlipper(98, 155, 34, 0.35, -0.75, 'mini'),
+    createFlipper(96, 168, 32, 0.4, -0.7, 'mini'),
   ];
 
   const plunger = {
-    x: W - 33,
+    x: W - 34,
     y: H - 42,
-    laneTop: 115,
+    laneTop: 108,
     laneBottom: H - 42,
   };
 
@@ -538,7 +530,7 @@ export function applyBallState(geometry, ball) {
 }
 
 /**
- * Step physics one or more fixed 120 Hz ticks.
+ * Step physics one or more fixed ticks.
  * @param {object} world { balls, geometry }
  * @param {number} dtSteps number of fixed steps
  */
@@ -599,7 +591,6 @@ export function stepPhysics(world, dtSteps = 1) {
       }
     }
 
-    // Re-arm triggers once ball leaves sensor
     for (const key of Object.keys(geo._triggerArmed)) {
       const [tid, bid] = key.split('|');
       const t = geo.triggers.find((x) => x.id === tid);
@@ -625,7 +616,6 @@ export function launchFromPlunger(ball, geometry, pullNorm, powerFn) {
   ball.held = false;
   ball.active = true;
   const speed = powerFn(pullNorm);
-  // Matter velocity is px per engine step (aligned with 60 Hz FIXED_DT)
   const matterVy = -speed;
   ball.vx = 0;
   ball.vy = matterVy;
@@ -659,7 +649,7 @@ export function simulate(world, steps, dt = 1) {
   return all;
 }
 
-/** Kick ball with velocity (no teleport) — scoop / kickout helper */
+/** Kick ball with velocity (no teleport) — saucer / kickout helper */
 export function kickBall(ball, geometry, vx, vy) {
   if (!ball || !ball.active) return;
   ball.held = false;

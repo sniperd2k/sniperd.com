@@ -196,7 +196,7 @@ export function detectInfiniteTrap(history, opts = {}) {
     const first = slice[0].ballsList[bi];
     if (!first || !first.active || first.held) continue;
     if (nearFlippers(first, 60)) continue;
-    if (first.x > 300) continue; // plunger lane
+    if (first.x > 300) continue; // plunger skill lane (Cadet right rail)
     let maxDist = 0;
     let minY = first.y;
     let maxY = first.y;

@@ -25,7 +25,6 @@ describe('integration: boot and cycles', () => {
     const g = createGame({ seed: 7 });
     tryLaunch(g, 1);
     expect(g.ballInPlay).toBe(true);
-    // force drain via inject (syncs Matter body)
     inject(g, {
       ball: { x: 180, y: g.geometry.drainY + 2, vx: 0, vy: 2, held: false, active: true },
     });
@@ -62,15 +61,15 @@ describe('integration: boot and cycles', () => {
     expect(getHud(g).score).toBe(g.score);
   });
 
-  it('BOARD target spots letter and scores', () => {
+  it('CADET target spots letter and scores', () => {
     const g = createGame();
     tryLaunch(g, 0.9);
-    const target = g.geometry.targets.find((t) => t.bank === 'BOARD' && t.letter === 'B');
+    const target = g.geometry.targets.find((t) => t.bank === 'CADET' && t.letter === 'C');
     inject(g, {
       ball: { x: target.x + 5, y: target.y + 2, vx: 0, vy: 3, held: false, active: true },
     });
     for (let i = 0; i < 5; i++) tick(g);
-    expect(g.board.lit[0]).toBe(true);
+    expect(g.cadet.lit[0]).toBe(true);
     expect(g.score).toBeGreaterThanOrEqual(250_000);
   });
 
