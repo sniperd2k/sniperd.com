@@ -76,6 +76,7 @@ export function createGame(opts = {}) {
     ballsList: [ball],
     seed: opts.seed ?? 1,
     _skillShotArmed: true,
+    sfxEvents: [],
   };
 
   return state;
@@ -86,12 +87,25 @@ function msg(state, text, frames = 120) {
   state.messageTimer = frames;
 }
 
+function pushSfx(state, name) {
+  if (!state.sfxEvents) state.sfxEvents = [];
+  state.sfxEvents.push(name);
+}
+
+/** Drain queued SFX cue names (for audio layer). */
+export function drainSfx(state) {
+  const q = state.sfxEvents || [];
+  state.sfxEvents = [];
+  return q;
+}
+
 function award(state, amount, reason) {
   const next = applyScore(state, amount, reason);
   state.score = next.score;
   state.lastAward = next.lastAward;
   state.lastReason = next.lastReason;
   msg(state, `${reason}  +${formatScore(amount)}`, 90);
+  pushSfx(state, 'scoring');
 }
 
 function cooldownOk(state, id, frames = 20) {
@@ -112,6 +126,7 @@ function handleEvents(state, events) {
       award(state, val, 'POWDER BANK');
       state.modes = rotatePeakAward(state.modes);
       if (ev.ball) emitSnow(state.particles, ev.ball.x, ev.ball.y, 8, heavy);
+      pushSfx(state, 'snow');
     }
 
     if (ev.type === 'target') {
@@ -224,6 +239,7 @@ function handleTrigger(state, ev) {
     case 'tree_well': {
       const v = treeWellCollect(state.powderValue, state.treeWellLit);
       award(state, v || state.powderValue, state.treeWellLit ? 'TREE WELL 5×' : 'TREE WELL');
+      pushSfx(state, 'treeWell');
       state.treeWellLit = false;
       if (ball) {
         // kickout to right flipper
@@ -247,6 +263,7 @@ function handleTrigger(state, ev) {
             state.ballsList.push(b);
           }
           msg(state, 'POWDER MULTIBALL!', 200);
+          pushSfx(state, 'multiball');
         } else if (ball) {
           ball.active = false;
           ball.held = true;
@@ -330,6 +347,7 @@ export function tryLaunch(state, pullNorm) {
   }
   state.ballInPlay = true;
   msg(state, 'SKILL SHOT — CHAIRLIFT!', 100);
+  pushSfx(state, 'plunger');
 }
 
 /**
