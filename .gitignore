@@ -1,4 +1,12 @@
-﻿# sniperd.com
+# sniperd.com
 *.bak
 .DS_Store
 Thumbs.db
+node_modules/
+test-results/
+playwright-report/
+coverage/
+.vitest/
+*.log
+.deploy-marker.txt
+test-results/

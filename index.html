@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>sniperd.com — Under Construction</title>
-  <meta name="description" content="sniperd.com is under construction. Please check back soon." />
-  <meta name="theme-color" content="#000000" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>SniperD Pinball</title>
+  <meta name="description" content="SniperD Pinball — snowboard-themed HTML5 pinball. Flip, plunge, and chase Powder Multiball." />
+  <meta name="theme-color" content="#0a1628" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="canonical" href="https://sniperd.com/" />
 
 <!-- Google tag (gtag.js) -->
@@ -16,69 +18,17 @@
   gtag('js', new Date());
   gtag('config', 'G-3Z1GXBW9W2');
 </script>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-      color: #0f0;
-      font-family: "Courier New", Courier, monospace;
-      text-align: center;
-      padding: 1.25rem;
-    }
-    main {
-      max-width: 28rem;
-      width: 100%;
-    }
-    img {
-      max-width: min(100%, 320px);
-      height: auto;
-      margin: 0 auto 1rem;
-      display: block;
-      image-rendering: auto;
-    }
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.1rem, 4vw, 1.4rem);
-      font-weight: bold;
-      letter-spacing: 0.04em;
-      color: #ffff00;
-      text-shadow: 1px 1px 0 #f00;
-    }
-    p {
-      margin: 0.4rem 0;
-      font-size: 0.95rem;
-      line-height: 1.45;
-      color: #0f0;
-    }
-    .blink { animation: blink 1.2s step-start infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) {
-      .blink { animation: none; }
-    }
-    .fine {
-      margin-top: 1.25rem;
-      font-size: 0.7rem;
-      color: #666;
-    }
-  </style>
+
+  <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
-  <main>
-    <img
-      src="assets/under-construction.gif"
-      width="320"
-      height="120"
-      alt="Animated under construction graphic with caution cones and hard hat"
-    />
-    <h1><span class="blink">⚠</span> SITE UNDER CONSTRUCTION <span class="blink">⚠</span></h1>
-    <p>Welcome to <b>sniperd.com</b>.</p>
-    <p>Please excuse the dust — something cooler is being welded together.</p>
-    <p class="fine">GIF: original site asset (90s homage).</p>
-  </main>
+  <canvas id="game" width="390" height="844" aria-label="SniperD Pinball playfield"></canvas>
+  <noscript>
+    <main style="color:#9ad0ff;font-family:sans-serif;padding:2rem;text-align:center">
+      <h1>SniperD Pinball</h1>
+      <p>JavaScript is required to play.</p>
+    </main>
+  </noscript>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
