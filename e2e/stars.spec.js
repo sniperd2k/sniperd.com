@@ -20,6 +20,17 @@ test.describe('SniperD stars page', () => {
     const hasSniperHook = await page.evaluate(() => typeof window.__SNIPERD__ !== 'undefined');
     expect(hasSniperHook).toBe(false);
 
+    // Local assets load with clean URLs (no forced ?v= cache-bust query)
+    const assetUrls = await page.evaluate(() => {
+      const hrefs = [...document.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href'));
+      const scripts = [...document.querySelectorAll('script[src]')].map((el) => el.getAttribute('src'));
+      return [...hrefs, ...scripts].filter((u) => u && !u.startsWith('http'));
+    });
+    expect(assetUrls.length).toBeGreaterThan(0);
+    for (const u of assetUrls) {
+      expect(u).not.toMatch(/\?v=/);
+    }
+
     // Canvas paints something (not blank black forever)
     await page.waitForTimeout(200);
     const painted = await page.evaluate(() => {
