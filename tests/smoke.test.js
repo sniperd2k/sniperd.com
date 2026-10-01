@@ -6,12 +6,14 @@ import { execSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-describe('stars page smoke', () => {
-  it('index.html loads stars at root with GA4 and no query-string cache bust', () => {
+describe('hackers homage smoke', () => {
+  it('index.html loads grid HUD with GA4 and no query-string cache bust', () => {
     const html = readFileSync(join(root, 'index.html'), 'utf8');
     expect(html).toContain('G-3Z1GXBW9W2');
     expect(html).toContain('gtag');
-    expect(html).toContain('id="stars"');
+    expect(html).toContain('id="grid"');
+    expect(html).toContain('id="hud"');
+    expect(html).toContain('id="boot"');
     expect(html).toContain('href="src/styles.css"');
     expect(html).toContain('src="src/main.js"');
     expect(html).not.toMatch(/styles\.css\?/);
@@ -20,6 +22,7 @@ describe('stars page smoke', () => {
     expect(html).not.toContain('matter');
     expect(html).not.toContain('__SNIPERD__');
     expect(html).not.toContain('id="game"');
+    expect(html).not.toContain('id="stars"');
   });
 
   it('web.config defaultDocument is index.html and DisableCache stays on', () => {
@@ -43,29 +46,31 @@ describe('stars page smoke', () => {
     expect(hits).toEqual([]);
   });
 
-  it('main starfield module exists and has no game hooks', () => {
+  it('main module is cyber homage with rAF and no game hooks', () => {
     const main = readFileSync(join(root, 'src/main.js'), 'utf8');
     expect(main).toMatch(/requestAnimationFrame/);
+    expect(main).toMatch(/drawTowers|spawnTowers/);
+    expect(main).toMatch(/BOOT_LINES|boot/);
     expect(main).not.toContain('__SNIPERD__');
     expect(main).not.toContain('matter');
     expect(main).not.toContain('flipper');
     expect(main).not.toContain('playfield');
   });
 
-  it('proximity-only star repulsion with persistent drift (no spring / no cursor glow)', () => {
+  it('styles include CRT/scanline cyber vibe', () => {
+    const css = readFileSync(join(root, 'src/styles.css'), 'utf8');
+    expect(css).toMatch(/scanlines/);
+    expect(css).toMatch(/#7ef9ff|--cyan/);
+    expect(css).toMatch(/#ff4fd8|--magenta/);
+    expect(css).toMatch(/#crt|vignette/);
+  });
+
+  it('homage copy avoids trademarked logo-mark phrase as branding asset', () => {
+    const html = readFileSync(join(root, 'index.html'), 'utf8');
     const main = readFileSync(join(root, 'src/main.js'), 'utf8');
-    expect(main).toMatch(/REPEL_RADIUS\s*=\s*1[0-4]\d/);
-    expect(main).toMatch(/REPEL_IMPULSE/);
-    expect(main).toMatch(/REPEL_VEL_DECAY/);
-    expect(main).toContain("addEventListener('pointermove'");
-    expect(main).toContain("addEventListener('pointerleave'");
-    expect(main).toMatch(/s\.free\s*=\s*true/);
-    expect(main).not.toMatch(/springBack|spring-back|Hooke/i);
-    expect(main).not.toMatch(/cursor.?glow|pointer.?glow|cursorGlow/i);
-    // Bodies (planets/galaxies) never read pointer
-    const bodyFns = main.match(/function (?:drawPlanet|drawGalaxy|updateBodies|spawnBody)[\s\S]*?(?=\nfunction |\nlet lastTs|\ncanvas\.addEventListener)/g) || [];
-    for (const fn of bodyFns) {
-      expect(fn).not.toMatch(/\bpointer\b/);
-    }
+    const css = readFileSync(join(root, 'src/styles.css'), 'utf8');
+    const blob = html + main + css;
+    // Allow homage vibe; block using the exact film catchphrase as a logo/mark string
+    expect(blob).not.toMatch(/Hack the Planet/i);
   });
 });

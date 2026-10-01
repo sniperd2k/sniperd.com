@@ -1,9 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('SniperD stars page', () => {
-  test('page loads fullscreen canvas and GA4 is present', async ({ page }) => {
+test.describe('SniperD cyber homage', () => {
+  test('page boots to HUD with GA4 and grid canvas', async ({ page }) => {
     await page.goto('/');
-    const canvas = page.locator('#stars');
+
+    // Skip boot quickly for the gate
+    const skip = page.locator('#skip-boot');
+    await expect(skip).toBeVisible();
+    await skip.click();
+
+    const canvas = page.locator('#grid');
     await expect(canvas).toBeVisible();
 
     const box = await canvas.boundingBox();
@@ -15,12 +21,11 @@ test.describe('SniperD stars page', () => {
     const ga = await page.locator('script[src*="G-3Z1GXBW9W2"]').count();
     expect(ga).toBeGreaterThan(0);
 
-    // No game UI / chrome
+    await expect(page.locator('#hud')).toBeVisible();
     await expect(page.locator('#game')).toHaveCount(0);
     const hasSniperHook = await page.evaluate(() => typeof window.__SNIPERD__ !== 'undefined');
     expect(hasSniperHook).toBe(false);
 
-    // Local assets load with clean URLs (no forced ?v= cache-bust query)
     const assetUrls = await page.evaluate(() => {
       const hrefs = [...document.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href'));
       const scripts = [...document.querySelectorAll('script[src]')].map((el) => el.getAttribute('src'));
@@ -31,10 +36,14 @@ test.describe('SniperD stars page', () => {
       expect(u).not.toMatch(/\?v=/);
     }
 
-    // Canvas paints something (not blank black forever)
-    await page.waitForTimeout(200);
+    // Toys present
+    await expect(page.locator('#toy-pulse')).toBeVisible();
+    await expect(page.locator('#toy-jack')).toBeVisible();
+
+    // Canvas paints (not blank)
+    await page.waitForTimeout(250);
     const painted = await page.evaluate(() => {
-      const c = document.getElementById('stars');
+      const c = document.getElementById('grid');
       const ctx = c.getContext('2d');
       const { width, height } = c;
       const sample = ctx.getImageData(
@@ -43,9 +52,13 @@ test.describe('SniperD stars page', () => {
         1,
         1
       ).data;
-      // Background is deep navy, not pure black — any channel > 0 is fine
       return sample[0] + sample[1] + sample[2] > 0 || sample[3] > 0;
     });
     expect(painted).toBe(true);
+
+    // Terminal accepts a command
+    await page.locator('#term-input').fill('help');
+    await page.locator('#term-form').evaluate((form) => form.requestSubmit());
+    await expect(page.locator('#term')).toContainText('commands');
   });
 });

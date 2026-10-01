@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>SniperD</title>
-  <meta name="description" content="SniperD — drifting through the stars." />
-  <meta name="theme-color" content="#02020a" />
+  <title>SniperD — Elite Node</title>
+  <meta name="description" content="SniperD — jack into the grid. Original 90s cyber homage." />
+  <meta name="theme-color" content="#050510" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="canonical" href="https://sniperd.com/" />
@@ -22,10 +22,83 @@
   <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
-  <canvas id="stars" aria-hidden="true"></canvas>
+  <div id="crt" aria-hidden="true">
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <canvas id="grid" aria-hidden="true"></canvas>
+
+  <div id="boot" role="status" aria-live="polite">
+    <pre id="boot-log"></pre>
+    <button type="button" id="skip-boot" class="ghost-btn">SKIP &gt;</button>
+  </div>
+
+  <main id="hud" class="hud hidden" hidden>
+    <header class="hud-top">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <p class="brand-name">SNIPERD<span class="dim">.NET</span></p>
+          <p class="brand-sub">ELITE ACCESS NODE // DEMO</p>
+        </div>
+      </div>
+      <div class="status-pills" aria-label="link status">
+        <span class="pill on">LINK UP</span>
+        <span class="pill" id="clock">00:00:00</span>
+      </div>
+    </header>
+
+    <section class="hud-center" aria-label="cyberspace console">
+      <div class="panel terminal" id="term-panel">
+        <div class="panel-chrome">
+          <span>CONSOLE</span>
+          <span class="blink">●</span>
+        </div>
+        <pre id="term" class="term-body"></pre>
+        <form id="term-form" autocomplete="off">
+          <label class="sr-only" for="term-input">Command</label>
+          <span class="prompt">&gt;</span>
+          <input id="term-input" type="text" maxlength="48" spellcheck="false" enterkeyhint="go" placeholder="type help" />
+        </form>
+      </div>
+
+      <div class="panel toys" aria-label="interactive toys">
+        <div class="panel-chrome"><span>TOYS</span><span>TAP / CLICK</span></div>
+        <div class="toy-row">
+          <button type="button" class="toy" data-toy="pulse" id="toy-pulse">
+            <span class="toy-icon" aria-hidden="true">◈</span>
+            <span>Pulse Gate</span>
+          </button>
+          <button type="button" class="toy" data-toy="jack" id="toy-jack">
+            <span class="toy-icon" aria-hidden="true">⚡</span>
+            <span>Jack In</span>
+          </button>
+          <button type="button" class="toy" data-toy="glitch" id="toy-glitch">
+            <span class="toy-icon" aria-hidden="true">░</span>
+            <span>Glitch</span>
+          </button>
+          <button type="button" class="toy" data-toy="crack" id="toy-crack">
+            <span class="toy-icon" aria-hidden="true">#</span>
+            <span>Crack</span>
+          </button>
+        </div>
+        <div class="meter" aria-hidden="true">
+          <div class="meter-fill" id="elite-meter"></div>
+        </div>
+        <p class="meter-label">ELITE METER <span id="elite-pct">0%</span></p>
+      </div>
+    </section>
+
+    <footer class="hud-bot">
+      <p class="tagline">Neon nights. Original grid. Homage vibes only.</p>
+      <p class="fineprint">© SniperD — fan aesthetic, not affiliated with any film.</p>
+    </footer>
+  </main>
+
   <noscript>
-    <main style="color:#c8d0ff;font-family:system-ui,sans-serif;padding:2rem;text-align:center;background:#02020a;min-height:100vh">
-      <p>JavaScript is required.</p>
+    <main style="color:#7ef9ff;font-family:ui-monospace,monospace;padding:2rem;text-align:center;background:#050510;min-height:100vh">
+      <p>JavaScript is required to jack into the grid.</p>
     </main>
   </noscript>
   <script type="module" src="src/main.js"></script>

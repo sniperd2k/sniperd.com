@@ -1,48 +1,63 @@
 /**
- * SniperD — calm cinematic starfield: gentle swirl + rare drifting bodies.
- * Canvas 2D, ~60fps, mobile-friendly (Chrome + Safari).
- * Pointer proximity gently repels nearby stars; they keep drifting away.
+ * SniperD — original 90s cyber homage (CRT grid + elite HUD).
+ * Canvas 2D city/skyline + perspective grid. No film assets.
+ * Mobile-first; Chrome + Safari.
  */
 
-const canvas = document.getElementById('stars');
+const canvas = document.getElementById('grid');
 const ctx = canvas.getContext('2d', { alpha: false });
-
-const STAR_LAYERS = [
-  { count: 90,  depth: 0.25, size: [0.4, 1.0], alpha: [0.25, 0.55], swirl: 0.012 },
-  { count: 140, depth: 0.55, size: [0.6, 1.6], alpha: [0.35, 0.75], swirl: 0.022 },
-  { count: 70,  depth: 1.0,  size: [0.9, 2.2], alpha: [0.5, 0.95],  swirl: 0.035 },
-];
-
-/** Soft nebula wisps for depth (subtle, not UI). */
-const NEBULAE = 4;
-
-/** How often a body (planet/galaxy) may spawn, in seconds (mean-ish). */
-const BODY_MEAN_INTERVAL = 28;
-const BODY_MIN_GAP = 14;
-
-/** Proximity mouse/touch repulsion (stars only; persist drift only). */
-const REPEL_RADIUS = 120;
-const REPEL_IMPULSE = 320; // base px/s added per second of contact at center
-const REPEL_VEL_DECAY = 0.55; // exponential decay rate (1/s) — slow drift fade
-const REPEL_DEPTH_BOOST = 0.35; // high-depth stars get a bit more push
+const bootEl = document.getElementById('boot');
+const bootLog = document.getElementById('boot-log');
+const skipBtn = document.getElementById('skip-boot');
+const hud = document.getElementById('hud');
+const term = document.getElementById('term');
+const termForm = document.getElementById('term-form');
+const termInput = document.getElementById('term-input');
+const clockEl = document.getElementById('clock');
+const eliteMeter = document.getElementById('elite-meter');
+const elitePct = document.getElementById('elite-pct');
 
 let w = 0;
 let h = 0;
 let dpr = 1;
-let cx = 0;
-let cy = 0;
-let stars = [];
-let nebulae = [];
-let bodies = [];
 let t0 = performance.now();
-let lastBodyAt = -BODY_MIN_GAP;
-let nextBodyIn = BODY_MEAN_INTERVAL * (0.6 + Math.random() * 0.8);
-let driftX = 0;
-let driftY = 0;
-let swirlAngle = 0;
-
-/** Active pointer in CSS pixels, or null when no pointer (idle / left). */
+let elite = 0;
+let pulseBurst = 0;
+let jackUntil = 0;
+let crackProgress = 0;
+let crackActive = false;
+let towers = [];
+let packets = [];
 let pointer = null;
+let bootDone = false;
+let reduceMotion = false;
+
+try {
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+} catch (_) {
+  /* ignore */
+}
+
+const BOOT_LINES = [
+  'SNIPERD BIOS v2.0.0 — ORIGINAL NODE',
+  'Checking memory banks .............. OK',
+  'Mounting /cyber/grid ............... OK',
+  'Loading neon firmware .............. OK',
+  'CRT phosphor warm-up ............... OK',
+  'Negotiating uplink ................. 28.8k*',
+  'Handshake: cyan ↔ magenta .......... LOCKED',
+  'Elite ACL probe .................... PASS',
+  '',
+  'Welcome to the grid, operator.',
+  'Type HELP in the console. Tap toys.',
+  'Homage mode — no film frames loaded.',
+];
+
+const HELP_TEXT = [
+  'commands: help | status | scan | whoami | clear | about',
+  'toys: Pulse Gate · Jack In · Glitch · Crack',
+  'tap towers on the skyline for +elite',
+].join('\n');
 
 function rand(a, b) {
   return a + Math.random() * (b - a);
@@ -57,376 +72,437 @@ function resize() {
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  cx = w * 0.5;
-  cy = h * 0.5;
+  spawnTowers();
 }
 
-function spawnStars() {
-  stars = [];
-  const span = Math.max(w, h) * 1.35;
-  for (const layer of STAR_LAYERS) {
-    for (let i = 0; i < layer.count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = Math.sqrt(Math.random()) * span;
-      stars.push({
-        angle,
-        radius,
-        size: rand(layer.size[0], layer.size[1]),
-        alpha: rand(layer.alpha[0], layer.alpha[1]),
-        twinkle: rand(0.4, 1.6),
-        twPhase: Math.random() * Math.PI * 2,
-        depth: layer.depth,
-        swirl: layer.swirl,
-        hue: Math.random() < 0.12 ? rand(190, 230) : rand(0, 40),
-        warm: Math.random() < 0.18,
-        // Free-flight after proximity impulse (do not return to swirl)
-        free: false,
-        x: 0,
-        y: 0,
-        vx: 0,
-        vy: 0,
-      });
-    }
-  }
-}
-
-function spawnNebulae() {
-  nebulae = [];
-  for (let i = 0; i < NEBULAE; i++) {
-    nebulae.push({
-      x: rand(-0.2, 1.2) * w,
-      y: rand(-0.2, 1.2) * h,
-      r: rand(80, 220) * (Math.min(w, h) / 400),
-      hue: rand(220, 280),
-      alpha: rand(0.03, 0.08),
-      vx: rand(-3, 3),
-      vy: rand(-2, 2),
+function spawnTowers() {
+  const count = Math.max(8, Math.floor(w / 42));
+  towers = [];
+  for (let i = 0; i < count; i++) {
+    const tw = rand(10, 28);
+    const th = rand(h * 0.12, h * 0.42);
+    towers.push({
+      x: (i + 0.5) * (w / count) + rand(-8, 8),
+      w: tw,
+      h: th,
+      hue: Math.random() < 0.45 ? 185 : 320,
+      blink: Math.random(),
+      phase: Math.random() * Math.PI * 2,
+      hit: 0,
     });
   }
 }
 
-function spawnBody(nowSec) {
-  const kind = Math.random() < 0.55 ? 'planet' : 'galaxy';
-  const fromLeft = Math.random() < 0.5;
-  const y = rand(h * 0.15, h * 0.85);
-  const speed = rand(8, 18);
-  const scale = Math.min(w, h) / 390;
-
-  if (kind === 'planet') {
-    bodies.push({
-      kind: 'planet',
-      x: fromLeft ? -60 * scale : w + 60 * scale,
-      y,
-      vx: (fromLeft ? 1 : -1) * speed,
-      vy: rand(-2.5, 2.5),
-      r: rand(10, 22) * scale,
-      hue: rand(15, 50),
-      sat: rand(35, 70),
-      light: rand(40, 62),
-      ring: Math.random() < 0.35,
-      alpha: rand(0.55, 0.85),
-      born: nowSec,
-    });
-  } else {
-    bodies.push({
-      kind: 'galaxy',
-      x: fromLeft ? -90 * scale : w + 90 * scale,
-      y,
-      vx: (fromLeft ? 1 : -1) * speed * 0.7,
-      vy: rand(-1.5, 1.5),
-      rx: rand(28, 48) * scale,
-      ry: rand(10, 18) * scale,
-      rot: rand(0, Math.PI * 2),
-      spin: rand(-0.08, 0.08),
-      hue: rand(200, 280),
-      alpha: rand(0.35, 0.6),
-      born: nowSec,
-    });
-  }
-  lastBodyAt = nowSec;
-  nextBodyIn = BODY_MEAN_INTERVAL * (0.55 + Math.random() * 0.9);
+function bumpElite(n) {
+  elite = Math.min(100, elite + n);
+  eliteMeter.style.width = elite + '%';
+  elitePct.textContent = Math.round(elite) + '%';
 }
 
-function drawBackground() {
-  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.75);
-  g.addColorStop(0, '#0a0a1c');
-  g.addColorStop(0.45, '#050512');
-  g.addColorStop(1, '#02020a');
+function appendTerm(line) {
+  term.textContent += (term.textContent ? '\n' : '') + line;
+  term.scrollTop = term.scrollHeight;
+}
+
+function runCommand(raw) {
+  const cmd = String(raw || '').trim().toLowerCase();
+  if (!cmd) return;
+  appendTerm('> ' + cmd);
+  switch (cmd) {
+    case 'help':
+    case '?':
+      appendTerm(HELP_TEXT);
+      break;
+    case 'status':
+      appendTerm(
+        `link=UP elite=${Math.round(elite)}% packets=${packets.length} towers=${towers.length}`
+      );
+      break;
+    case 'scan':
+      appendTerm('scanning sector…');
+      setTimeout(() => {
+        appendTerm(`found ${3 + Math.floor(Math.random() * 5)} open ports (demo)`);
+        bumpElite(4);
+      }, 280);
+      break;
+    case 'whoami':
+      appendTerm('uid=sniperd  gid=elite  tty=crt0');
+      bumpElite(2);
+      break;
+    case 'clear':
+      term.textContent = '';
+      break;
+    case 'about':
+      appendTerm(
+        'SniperD — creative homage to 90s cyber cinema.\nOriginal layout/art. No scraped frames or logos.'
+      );
+      break;
+    default:
+      appendTerm(`unknown: ${cmd} — try help`);
+  }
+}
+
+/* ---- Canvas scene: perspective grid + neon skyline ---- */
+function drawSky(now) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#07071a');
+  g.addColorStop(0.45, '#0a0a22');
+  g.addColorStop(0.72, '#12081f');
+  g.addColorStop(1, '#050510');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
+
+  // soft aurora
+  const ax = w * (0.35 + 0.1 * Math.sin(now * 0.0003));
+  const ag = ctx.createRadialGradient(ax, h * 0.2, 10, ax, h * 0.25, w * 0.55);
+  ag.addColorStop(0, 'rgba(126, 249, 255, 0.12)');
+  ag.addColorStop(0.5, 'rgba(255, 79, 216, 0.06)');
+  ag.addColorStop(1, 'transparent');
+  ctx.fillStyle = ag;
+  ctx.fillRect(0, 0, w, h * 0.7);
 }
 
-function drawNebulae(dt) {
-  for (const n of nebulae) {
-    n.x += n.vx * dt;
-    n.y += n.vy * dt;
-    if (n.x < -n.r) n.x = w + n.r;
-    if (n.x > w + n.r) n.x = -n.r;
-    if (n.y < -n.r) n.y = h + n.r;
-    if (n.y > h + n.r) n.y = -n.r;
-
-    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-    g.addColorStop(0, `hsla(${n.hue}, 55%, 55%, ${n.alpha})`);
-    g.addColorStop(0.55, `hsla(${n.hue}, 50%, 35%, ${n.alpha * 0.35})`);
-    g.addColorStop(1, 'hsla(240, 40%, 10%, 0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-    ctx.fill();
+function drawStars(now) {
+  ctx.save();
+  for (let i = 0; i < 60; i++) {
+    const x = ((i * 97) % w);
+    const y = ((i * 53) % (h * 0.55));
+    const a = 0.25 + 0.55 * Math.abs(Math.sin(now * 0.001 + i));
+    ctx.fillStyle = i % 7 === 0 ? `rgba(255,79,216,${a})` : `rgba(126,249,255,${a})`;
+    ctx.fillRect(x, y, i % 11 === 0 ? 2 : 1, i % 11 === 0 ? 2 : 1);
   }
+  ctx.restore();
 }
 
-function softWrap(x, y) {
-  const pad = 40;
-  let wx = x;
-  let wy = y;
-  if (wx < -pad) wx += w + pad * 2;
-  if (wx > w + pad) wx -= w + pad * 2;
-  if (wy < -pad) wy += h + pad * 2;
-  if (wy > h + pad) wy -= h + pad * 2;
-  return { x: wx, y: wy };
+function drawHorizonGrid(now) {
+  const horizon = h * 0.55;
+  const vanishX = w * 0.5;
+  const speed = reduceMotion ? 0 : (now * 0.04) % 40;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(w, horizon);
+  ctx.strokeStyle = 'rgba(126, 249, 255, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // floor horizontal lines
+  for (let i = 0; i < 14; i++) {
+    const t = i / 14;
+    const y = horizon + Math.pow(t, 1.6) * (h - horizon);
+    const alpha = 0.08 + t * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.strokeStyle = `rgba(255, 79, 216, ${alpha})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // perspective verticals
+  for (let i = -10; i <= 10; i++) {
+    const offset = i * 40 + speed;
+    const x0 = vanishX + offset * 0.15;
+    const x1 = vanishX + offset * 3.2;
+    ctx.beginPath();
+    ctx.moveTo(x0, horizon);
+    ctx.lineTo(x1, h);
+    ctx.strokeStyle = 'rgba(126, 249, 255, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
-function swirlPosition(s) {
-  const a = s.angle + swirlAngle * s.depth * 0.15;
-  const ox = Math.cos(a) * s.radius + driftX * s.depth;
-  const oy = Math.sin(a) * s.radius + driftY * s.depth;
-  return softWrap(cx + ox, cy + oy);
-}
+function drawTowers(now) {
+  const baseY = h * 0.55;
+  for (const tw of towers) {
+    const glow = tw.hit > 0 ? 1 : 0;
+    const top = baseY - tw.h;
+    const x = tw.x - tw.w / 2;
 
-function drawStars(time, dt) {
-  swirlAngle += dt * 0.015;
-  driftX += Math.sin(time * 0.03) * 0.15 * dt * 60;
-  driftY += Math.cos(time * 0.022) * 0.12 * dt * 60;
+    // tower body
+    const grad = ctx.createLinearGradient(x, top, x + tw.w, baseY);
+    grad.addColorStop(0, `hsla(${tw.hue}, 90%, 55%, 0.15)`);
+    grad.addColorStop(1, `hsla(${tw.hue}, 80%, 35%, 0.55)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, top, tw.w, tw.h);
 
-  const r2 = REPEL_RADIUS * REPEL_RADIUS;
-  const decay = Math.exp(-REPEL_VEL_DECAY * dt);
-  const hasPtr = pointer != null;
+    ctx.strokeStyle = `hsla(${tw.hue}, 100%, 65%, ${0.55 + glow * 0.4})`;
+    ctx.lineWidth = 1 + glow;
+    ctx.strokeRect(x + 0.5, top + 0.5, tw.w - 1, tw.h - 1);
 
-  for (const s of stars) {
-    let x;
-    let y;
-
-    if (s.free) {
-      s.vx *= decay;
-      s.vy *= decay;
-      s.x += s.vx * dt;
-      s.y += s.vy * dt;
-      const wrapped = softWrap(s.x, s.y);
-      s.x = wrapped.x;
-      s.y = wrapped.y;
-      x = s.x;
-      y = s.y;
-    } else {
-      s.angle += s.swirl * dt;
-      const pos = swirlPosition(s);
-      x = pos.x;
-      y = pos.y;
-    }
-
-    // Proximity-only impulse: stars near pointer get pushed and keep drifting
-    if (hasPtr) {
-      const dx = x - pointer.x;
-      const dy = y - pointer.y;
-      const d2 = dx * dx + dy * dy;
-      if (d2 < r2 && d2 > 0.0001) {
-        const d = Math.sqrt(d2);
-        const falloff = 1 - d / REPEL_RADIUS;
-        const boost = 1 + s.depth * REPEL_DEPTH_BOOST;
-        const impulse = REPEL_IMPULSE * falloff * falloff * boost * dt;
-        const nx = dx / d;
-        const ny = dy / d;
-        if (!s.free) {
-          s.free = true;
-          s.x = x;
-          s.y = y;
-          s.vx = 0;
-          s.vy = 0;
-        }
-        s.vx += nx * impulse;
-        s.vy += ny * impulse;
-        x = s.x;
-        y = s.y;
+    // windows
+    const cols = Math.max(1, Math.floor(tw.w / 5));
+    const rows = Math.max(2, Math.floor(tw.h / 10));
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const on = ((Math.sin(now * 0.002 + tw.phase + r * 0.7 + c) + 1) * 0.5) > 0.35;
+        if (!on && glow < 0.5) continue;
+        ctx.fillStyle =
+          tw.hue < 250
+            ? `rgba(126,249,255,${0.35 + glow * 0.4})`
+            : `rgba(255,79,216,${0.35 + glow * 0.4})`;
+        ctx.fillRect(x + 2 + c * 5, top + 4 + r * 10, 2, 3);
       }
     }
 
-    const tw = 0.65 + 0.35 * Math.sin(time * s.twinkle + s.twPhase);
-    const alpha = s.alpha * tw;
-    if (s.warm) {
-      ctx.fillStyle = `hsla(${s.hue}, 70%, 78%, ${alpha})`;
-    } else {
-      ctx.fillStyle = `hsla(210, 40%, 92%, ${alpha})`;
+    // antenna blink
+    if ((Math.sin(now * 0.008 + tw.blink * 10) > 0.6) || glow) {
+      ctx.fillStyle = '#b8ff4a';
+      ctx.fillRect(tw.x - 1, top - 6, 2, 6);
     }
-    ctx.beginPath();
-    ctx.arc(x, y, s.size, 0, Math.PI * 2);
-    ctx.fill();
 
-    // Occasional soft glow on brighter stars (star glow only — no cursor chrome)
-    if (s.size > 1.4 && alpha > 0.55) {
-      ctx.fillStyle = `hsla(210, 60%, 80%, ${alpha * 0.12})`;
-      ctx.beginPath();
-      ctx.arc(x, y, s.size * 3.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    if (tw.hit > 0) tw.hit -= 0.04;
   }
 }
 
-function drawPlanet(b) {
-  ctx.save();
-  ctx.globalAlpha = b.alpha;
-  // Atmosphere glow
-  const glow = ctx.createRadialGradient(b.x, b.y, b.r * 0.2, b.x, b.y, b.r * 2.2);
-  glow.addColorStop(0, `hsla(${b.hue}, ${b.sat}%, ${b.light}%, 0.25)`);
-  glow.addColorStop(1, `hsla(${b.hue}, 40%, 20%, 0)`);
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r * 2.2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body
-  const body = ctx.createRadialGradient(
-    b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.1,
-    b.x, b.y, b.r
-  );
-  body.addColorStop(0, `hsl(${b.hue}, ${b.sat}%, ${b.light + 18}%)`);
-  body.addColorStop(0.55, `hsl(${b.hue}, ${b.sat}%, ${b.light}%)`);
-  body.addColorStop(1, `hsl(${b.hue + 20}, ${b.sat - 10}%, ${b.light - 22}%)`);
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (b.ring) {
-    ctx.strokeStyle = `hsla(${b.hue + 10}, 40%, 70%, 0.45)`;
-    ctx.lineWidth = Math.max(1, b.r * 0.12);
-    ctx.beginPath();
-    ctx.ellipse(b.x, b.y, b.r * 1.7, b.r * 0.45, -0.35, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawGalaxy(b) {
-  ctx.save();
-  ctx.translate(b.x, b.y);
-  ctx.rotate(b.rot);
-  ctx.globalAlpha = b.alpha;
-
-  // Soft halo
-  const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, b.rx * 1.4);
-  halo.addColorStop(0, `hsla(${b.hue}, 70%, 70%, 0.35)`);
-  halo.addColorStop(0.4, `hsla(${b.hue}, 60%, 50%, 0.12)`);
-  halo.addColorStop(1, 'hsla(240, 40%, 20%, 0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, b.rx * 1.4, b.ry * 1.4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Disk
-  const disk = ctx.createRadialGradient(0, 0, 0, 0, 0, b.rx);
-  disk.addColorStop(0, `hsla(${b.hue + 20}, 80%, 85%, 0.85)`);
-  disk.addColorStop(0.25, `hsla(${b.hue}, 70%, 65%, 0.45)`);
-  disk.addColorStop(0.7, `hsla(${b.hue - 10}, 55%, 45%, 0.18)`);
-  disk.addColorStop(1, 'hsla(240, 40%, 20%, 0)');
-  ctx.fillStyle = disk;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Faint spiral suggestion
-  ctx.strokeStyle = `hsla(${b.hue}, 60%, 75%, 0.2)`;
-  ctx.lineWidth = 1;
-  for (let arm = 0; arm < 2; arm++) {
-    ctx.beginPath();
-    for (let i = 0; i < 40; i++) {
-      const t = i / 40;
-      const ang = t * Math.PI * 2.2 + arm * Math.PI;
-      const rr = t * b.rx;
-      const x = Math.cos(ang) * rr;
-      const y = Math.sin(ang) * rr * (b.ry / b.rx);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+function drawPackets(now) {
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const p = packets[i];
+    p.y += p.vy;
+    p.x += p.vx;
+    p.life -= 0.016;
+    if (p.life <= 0 || p.y < 0) {
+      packets.splice(i, 1);
+      continue;
     }
-    ctx.stroke();
+    ctx.fillStyle = p.magenta
+      ? `rgba(255,79,216,${Math.min(1, p.life)})`
+      : `rgba(126,249,255,${Math.min(1, p.life)})`;
+    ctx.fillRect(p.x, p.y, 3, 8);
   }
-  ctx.restore();
+
+  // ambient rising packets
+  if (!reduceMotion && Math.random() < 0.08 + pulseBurst * 0.3) {
+    packets.push({
+      x: rand(0, w),
+      y: h * 0.55 + rand(0, h * 0.3),
+      vx: rand(-0.3, 0.3),
+      vy: rand(-2.5, -1.2),
+      life: rand(0.8, 1.6),
+      magenta: Math.random() < 0.4,
+    });
+  }
 }
 
-function updateBodies(dt, nowSec) {
-  if (nowSec - lastBodyAt >= nextBodyIn && bodies.length < 2) {
-    spawnBody(nowSec);
-  }
+function drawJackRing(now) {
+  if (now > jackUntil) return;
+  const t = 1 - (jackUntil - now) / 900;
+  const r = 20 + t * Math.min(w, h) * 0.35;
+  ctx.beginPath();
+  ctx.arc(w / 2, h * 0.55, r, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(255,79,216,${1 - t})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(w / 2, h * 0.55, r * 0.7, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(126,249,255,${0.8 - t})`;
+  ctx.stroke();
+}
 
-  for (let i = bodies.length - 1; i >= 0; i--) {
-    const b = bodies[i];
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    if (b.kind === 'galaxy') b.rot += b.spin * dt;
+function drawCrackBar() {
+  if (!crackActive) return;
+  const bw = Math.min(220, w * 0.7);
+  const bx = (w - bw) / 2;
+  const by = h * 0.42;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(bx - 4, by - 18, bw + 8, 36);
+  ctx.strokeStyle = 'rgba(126,249,255,0.6)';
+  ctx.strokeRect(bx - 4, by - 18, bw + 8, 36);
+  ctx.fillStyle = '#7ef9ff';
+  ctx.font = '11px ui-monospace, monospace';
+  ctx.fillText('CRACKING ACCESS…', bx, by - 6);
+  ctx.fillStyle = 'rgba(255,79,216,0.25)';
+  ctx.fillRect(bx, by + 2, bw, 8);
+  ctx.fillStyle = '#ff4fd8';
+  ctx.fillRect(bx, by + 2, bw * crackProgress, 8);
+}
 
-    const margin = 120;
-    if (b.x < -margin || b.x > w + margin || b.y < -margin || b.y > h + margin) {
-      bodies.splice(i, 1);
+function hitTowerAt(x, y) {
+  const baseY = h * 0.55;
+  for (const tw of towers) {
+    const left = tw.x - tw.w / 2;
+    const top = baseY - tw.h;
+    if (x >= left && x <= left + tw.w && y >= top && y <= baseY) {
+      tw.hit = 1;
+      bumpElite(3);
+      appendTerm(`tower ping @ ${Math.round(tw.x)},${Math.round(tw.h)}h  +3 elite`);
+      for (let i = 0; i < 6; i++) {
+        packets.push({
+          x: tw.x,
+          y: top + rand(0, tw.h * 0.4),
+          vx: rand(-1.2, 1.2),
+          vy: rand(-3, -1),
+          life: 1.2,
+          magenta: true,
+        });
+      }
+      return true;
     }
   }
+  return false;
 }
 
-function drawBodies() {
-  for (const b of bodies) {
-    if (b.kind === 'planet') drawPlanet(b);
-    else drawGalaxy(b);
+function frame(now) {
+  const t = now - t0;
+  drawSky(t);
+  drawStars(t);
+  drawHorizonGrid(t);
+  drawTowers(t);
+  drawPackets(t);
+  drawJackRing(now);
+  drawCrackBar();
+
+  if (pulseBurst > 0) pulseBurst = Math.max(0, pulseBurst - 0.02);
+  if (crackActive) {
+    crackProgress = Math.min(1, crackProgress + (reduceMotion ? 0.08 : 0.025));
+    if (crackProgress >= 1) {
+      crackActive = false;
+      crackProgress = 0;
+      bumpElite(8);
+      appendTerm('ACCESS GRANTED (demo). password=********');
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* ---- Boot sequence ---- */
+function typeBoot(done) {
+  let i = 0;
+  bootLog.textContent = '';
+
+  function next() {
+    if (bootDone) {
+      done();
+      return;
+    }
+    if (i >= BOOT_LINES.length) {
+      done();
+      return;
+    }
+    bootLog.textContent += (bootLog.textContent ? '\n' : '') + BOOT_LINES[i];
+    i += 1;
+    const delay = reduceMotion ? 20 : 90 + Math.floor(Math.random() * 70);
+    setTimeout(next, delay);
+  }
+  next();
+}
+
+function finishBoot() {
+  if (bootDone) return;
+  bootDone = true;
+  bootEl.classList.add('done');
+  hud.hidden = false;
+  hud.classList.remove('hidden');
+  requestAnimationFrame(() => hud.classList.add('visible'));
+  appendTerm('uplink ready. type help — or mash the toys.');
+  bumpElite(5);
+  try {
+    termInput.focus({ preventScroll: true });
+  } catch (_) {
+    /* ignore */
   }
 }
 
-function setPointerFromEvent(e) {
-  const rect = canvas.getBoundingClientRect();
-  pointer = {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top,
-  };
+function tickClock() {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  clockEl.textContent = `${hh}:${mm}:${ss}`;
 }
 
-function clearPointer() {
+/* ---- Toys ---- */
+function toyPulse() {
+  pulseBurst = 1;
+  bumpElite(5);
+  appendTerm('pulse gate fired — traffic spike');
+  for (let i = 0; i < 18; i++) {
+    packets.push({
+      x: rand(0, w),
+      y: h * 0.7,
+      vx: rand(-0.8, 0.8),
+      vy: rand(-4, -2),
+      life: 1.4,
+      magenta: Math.random() < 0.5,
+    });
+  }
+}
+
+function toyJack() {
+  jackUntil = performance.now() + 900;
+  bumpElite(6);
+  appendTerm('jacking in… neural handshake (fake)');
+}
+
+function toyGlitch() {
+  document.body.classList.add('glitching');
+  bumpElite(4);
+  appendTerm('glitch overlay — phosphor smear');
+  setTimeout(() => document.body.classList.remove('glitching'), 380);
+}
+
+function toyCrack() {
+  if (crackActive) return;
+  crackActive = true;
+  crackProgress = 0;
+  appendTerm('launching cracker…');
+}
+
+/* ---- Wire up ---- */
+resize();
+window.addEventListener('resize', resize);
+
+skipBtn.addEventListener('click', finishBoot);
+typeBoot(finishBoot);
+setTimeout(() => {
+  if (!bootDone) finishBoot();
+}, reduceMotion ? 400 : 4200);
+
+termForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  runCommand(termInput.value);
+  termInput.value = '';
+});
+
+document.querySelectorAll('.toy').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const id = btn.getAttribute('data-toy');
+    if (id === 'pulse') toyPulse();
+    else if (id === 'jack') toyJack();
+    else if (id === 'glitch') toyGlitch();
+    else if (id === 'crack') toyCrack();
+  });
+});
+
+canvas.addEventListener(
+  'pointerdown',
+  (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    pointer = { x, y };
+    hitTowerAt(x, y);
+  },
+  { passive: true }
+);
+
+canvas.addEventListener(
+  'pointermove',
+  (e) => {
+    const rect = canvas.getBoundingClientRect();
+    pointer = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  },
+  { passive: true }
+);
+
+canvas.addEventListener('pointerleave', () => {
   pointer = null;
-}
-
-canvas.addEventListener('pointerdown', setPointerFromEvent);
-canvas.addEventListener('pointermove', setPointerFromEvent);
-canvas.addEventListener('pointerup', (e) => {
-  // Touch lift ends force; mouse hover keeps tracking until leave
-  if (e.pointerType !== 'mouse') clearPointer();
-});
-canvas.addEventListener('pointercancel', clearPointer);
-canvas.addEventListener('pointerleave', clearPointer);
-
-let lastTs = performance.now();
-
-function frame(ts) {
-  const dt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
-  const time = (ts - t0) / 1000;
-
-  drawBackground();
-  drawNebulae(dt);
-  drawStars(time, dt);
-  updateBodies(dt, time);
-  drawBodies();
-
-  requestAnimationFrame(frame);
-}
-
-function init() {
-  resize();
-  spawnStars();
-  spawnNebulae();
-  lastTs = performance.now();
-  t0 = lastTs;
-  requestAnimationFrame(frame);
-}
-
-window.addEventListener('resize', () => {
-  resize();
-  spawnStars();
-  spawnNebulae();
 });
 
-init();
+tickClock();
+setInterval(tickClock, 1000);
+requestAnimationFrame(frame);
