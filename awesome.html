@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Koponen and the Underwoods are awesome</title>
-  <meta name="description" content="The Koponen and the Underwoods had an awesome time at the Canonicus." />
-  <meta name="theme-color" content="#1a2744" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Awesome Box</title>
+  <meta name="description" content="A pocket toy. the Koponen (K-O-P-O-N-E-N) are awesome. the Underwoods are awesome. they had an awesome time at the Canonicus." />
+  <meta name="theme-color" content="#1a0c22" />
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-3Z1GXBW9W2"></script>
@@ -19,86 +19,563 @@
   <style>
     :root {
       color-scheme: dark;
-      --ink: #f4efe4;
-      --muted: #c9c3b4;
-      --bg: #141820;
-      --card: #1e2633;
-      --accent: #e8a317;
+      --bg: #120814;
+      --ink: #fff6ea;
+      --pink: #ff4fa3;
+      --cyan: #5dfff6;
+      --yellow: #ffe14a;
+      --lime: #c6ff57;
+      --orange: #ff8a3d;
+      --grape: #e2b6ff;
+      --dim: #4a2a38;
     }
     * { box-sizing: border-box; }
     html { -webkit-text-size-adjust: 100%; }
     body {
       margin: 0;
-      background: var(--bg);
+      min-height: 100vh;
+      min-height: 100dvh;
       color: var(--ink);
       font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
-      line-height: 1.45;
+      background:
+        radial-gradient(ellipse at 50% -10%, #5a2468 0%, transparent 55%),
+        var(--bg);
+      -webkit-tap-highlight-color: transparent;
     }
-    .hero {
-      margin: 0;
-      background: #000;
+    .scan {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.035) 0 1px,
+        transparent 1px 4px
+      );
+      mix-blend-mode: overlay;
     }
-    .hero img {
-      display: block;
-      width: 100%;
-      max-width: 1600px;
-      height: auto;
+    .wrap {
+      max-width: 44rem;
       margin: 0 auto;
+      padding: 1rem 0.9rem 2rem;
     }
-    main {
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 1.5rem 1.25rem 3rem;
+    .machine {
+      position: relative;
+      background: linear-gradient(180deg, #321843, #1a0c22 40%);
+      border: 4px solid var(--pink);
+      border-radius: 28px;
+      padding: 0.9rem;
+      box-shadow: 0 16px 0 #07040c, inset 0 2px 0 rgba(255, 255, 255, 0.16);
     }
-    p.kicker {
-      margin: 0 0 0.5rem;
-      color: var(--accent);
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      font-size: 0.8rem;
+    .machine.unlocked { border-color: var(--yellow); }
+    .machine.shake { animation: shake 0.28s linear; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(3px); }
+    }
+    .top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 0.15rem 0.2rem 0.35rem;
     }
     h1 {
-      margin: 0 0 1rem;
-      font-size: clamp(1.8rem, 6vw, 2.6rem);
-      line-height: 1.1;
-      font-weight: 700;
-    }
-    ul {
       margin: 0;
-      padding: 1rem 1.1rem 1rem 1.6rem;
-      background: var(--card);
-      border-radius: 0.75rem;
-      font-size: 1.2rem;
+      font-size: clamp(1.8rem, 7vw, 2.6rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 0.95;
+      text-shadow: 3px 3px 0 #ff2d95;
     }
-    li { margin: 0.55rem 0; }
-    li:first-child { margin-top: 0; }
-    li:last-child { margin-bottom: 0; }
-    p.note {
-      margin: 1.25rem 0 0;
-      color: var(--muted);
-      font-size: 1rem;
+    .badge {
+      margin: 0;
+      font-weight: 800;
+      background: var(--yellow);
+      color: #1a0a12;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      letter-spacing: 0.08em;
+    }
+    .goal {
+      margin: 0 0.2rem 0.7rem;
+      color: #f0c8dc;
+      font-size: 0.95rem;
+    }
+    .sign {
+      margin: 0 0 0.7rem;
+      text-align: center;
+      font-weight: 800;
+      font-size: clamp(1rem, 3.6vw, 1.25rem);
+      line-height: 1.25;
+      color: var(--dim);
+      padding: 0.35rem 0.4rem;
+      border-radius: 10px;
+      background: #140812;
+    }
+    .machine.unlocked .sign {
+      color: var(--yellow);
+      text-shadow: 0 0 8px #ff2d95, 0 0 18px #3dfff3;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.55rem;
+      align-items: center;
+      margin-bottom: 0.7rem;
+    }
+    .lcd {
+      font-family: "Courier New", ui-monospace, monospace;
+      background: #07140c;
+      color: var(--lime);
+      border-radius: 8px;
+      padding: 0.35rem 0.55rem;
+      letter-spacing: 0.14em;
+      font-size: 1.35rem;
+      min-width: 7.2ch;
+      text-align: right;
+      box-shadow: inset 0 0 0 2px #1d3a22;
+    }
+    .lcd.bump { animation: bump 0.22s ease; }
+    @keyframes bump {
+      50% { transform: scale(1.08); color: #fff; }
+    }
+    .now {
+      min-height: 2.7rem;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: #07060c;
+      color: var(--cyan);
+      border-radius: 8px;
+      padding: 0.3rem 0.5rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .eq {
+      display: flex;
+      gap: 3px;
+      align-items: flex-end;
+      height: 32px;
+      width: 34px;
+    }
+    .eq i {
+      display: block;
+      width: 4px;
+      height: 18%;
+      background: var(--pink);
+      border-radius: 2px;
+    }
+    .eq.go i { animation: eq 0.16s ease-in-out infinite alternate; }
+    .eq.go i:nth-child(2) { animation-duration: 0.11s; background: var(--yellow); }
+    .eq.go i:nth-child(3) { animation-duration: 0.2s; background: var(--cyan); }
+    .eq.go i:nth-child(4) { animation-duration: 0.13s; background: var(--lime); }
+    .eq.go i:nth-child(5) { animation-duration: 0.18s; }
+    @keyframes eq { from { height: 18%; } to { height: 100%; } }
+    .stage {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem 0.9rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .tiles { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+    .tiles span {
+      width: 1.45rem;
+      height: 1.7rem;
+      display: grid;
+      place-items: center;
+      background: #2a1530;
+      color: #8a6078;
+      font-weight: 900;
+      border-radius: 4px;
+    }
+    .tiles.play span {
+      animation: tile 0.4s ease;
+      color: #1a0a12;
+      background: var(--pink);
+    }
+    .tiles.play span:nth-child(2) { animation-delay: 0.05s; }
+    .tiles.play span:nth-child(3) { animation-delay: 0.1s; }
+    .tiles.play span:nth-child(4) { animation-delay: 0.15s; }
+    .tiles.play span:nth-child(5) { animation-delay: 0.2s; }
+    .tiles.play span:nth-child(6) { animation-delay: 0.25s; }
+    .tiles.play span:nth-child(7) { animation-delay: 0.3s; }
+    @keyframes tile {
+      0% { transform: translateY(0) scale(1); }
+      40% { transform: translateY(-8px) scale(1.12); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .bounce {
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: var(--cyan);
+      opacity: 0.35;
+      font-size: 0.85rem;
+    }
+    .bounce.go { animation: pop 0.45s cubic-bezier(.2, 1.5, .4, 1); opacity: 1; }
+    @keyframes pop {
+      0% { transform: scale(0.55) rotate(-8deg); }
+      70% { transform: scale(1.12) rotate(3deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    .whoosh {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--lime);
+      border-radius: 50%;
+      opacity: 0.25;
+    }
+    .whoosh.go { animation: whoosh 0.45s ease-out; }
+    @keyframes whoosh {
+      from { transform: scale(0.3); opacity: 1; }
+      to { transform: scale(1.7); opacity: 0; }
+    }
+    .porch { width: 48px; display: grid; justify-items: center; }
+    .roof {
+      width: 0;
+      height: 0;
+      border-left: 24px solid transparent;
+      border-right: 24px solid transparent;
+      border-bottom: 16px solid var(--pink);
+    }
+    .house {
+      width: 40px;
+      height: 26px;
+      background: #214e52;
+      position: relative;
+    }
+    .lamp {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2a2030;
+      left: 14px;
+      top: 6px;
+    }
+    .lamp.on {
+      background: var(--yellow);
+      box-shadow: 0 0 12px 4px var(--yellow);
+    }
+    .tape {
+      width: 74px;
+      height: 42px;
+      background: #120c14;
+      border: 2px solid var(--yellow);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+    }
+    .reel {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 3px solid var(--cyan);
+      border-top-color: transparent;
+    }
+    .tape.spin .reel { animation: spin 0.35s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .leds {
+      display: flex;
+      gap: 0.35rem;
+      margin: 0 0 0.75rem;
+    }
+    .leds span {
+      width: 1.7rem;
+      height: 1.7rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #2a1520;
+      color: #6a4050;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .leds span.lit {
+      background: var(--pink);
+      color: #1a0a12;
+      box-shadow: 0 0 10px var(--pink);
+    }
+    .pads {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+    }
+    .pad {
+      appearance: none;
+      border: 0;
+      border-radius: 16px;
+      min-height: 5.6rem;
+      padding: 0.55rem 0.45rem 0.5rem;
+      font: inherit;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #1a0a12;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+      touch-action: manipulation;
+    }
+    .pad:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+    .pad:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+    .pad .name { display: block; font-size: clamp(0.95rem, 2.6vw, 1.15rem); }
+    .pad .fact {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.2;
+    }
+    .pad.koponen { background: var(--pink); }
+    .pad.underwoods { background: var(--cyan); }
+    .pad.canonicus { background: var(--yellow); }
+    .pad.tubular { background: var(--lime); }
+    .pad.radical { background: var(--orange); }
+    .pad.mixtape { background: var(--grape); }
+    .fine {
+      margin: 0.8rem 0.15rem 0;
+      color: #c9a8b8;
+      font-size: 0.82rem;
+    }
+    @media (max-width: 640px) {
+      .pads { grid-template-columns: 1fr 1fr; }
+      .hud { grid-template-columns: auto 1fr; }
+      .eq { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .machine.shake, .tiles.play span, .bounce.go, .whoosh.go, .tape.spin .reel, .eq.go i, .lcd.bump {
+        animation: none !important;
+      }
+      .tiles.play span { color: #1a0a12; background: var(--pink); }
+      .eq.go i { height: 100%; }
     }
   </style>
 </head>
 <body>
-  <figure class="hero">
-    <img
-      src="images/canonicus-family-dinner.jpg"
-      width="1600"
-      height="1200"
-      alt="family dinner at the Canonicus"
-    />
-  </figure>
-  <main>
-    <p class="kicker">Mix tape, volume awesome</p>
-    <h1>Totally, no doubt, awesome.</h1>
-    <ul>
-      <li>the Koponen (K-O-P-O-N-E-N) are awesome</li>
-      <li>the Underwoods are awesome</li>
-      <li>they had an awesome time at the Canonicus</li>
-    </ul>
-    <p class="note">Press play. Leave it on. That dinner still sounds like the good part of the tape.</p>
-  </main>
+  <div class="scan" aria-hidden="true"></div>
+  <div class="wrap">
+    <section class="machine" id="machine">
+      <header class="top">
+        <h1>Awesome Box</h1>
+        <p class="badge">'89</p>
+      </header>
+      <p class="goal">Light the sign. Hit Koponen, the Underwoods, and the Canonicus.</p>
+      <p class="sign" id="sign">they had an awesome time at the Canonicus</p>
+      <div class="hud">
+        <div class="lcd" id="score" aria-label="score">000000</div>
+        <p class="now" id="now" aria-live="polite">Sound waits for your thumb.</p>
+        <div class="eq" id="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="stage">
+        <div class="tiles" id="tiles" aria-hidden="true">
+          <span>K</span><span>O</span><span>P</span><span>O</span><span>N</span><span>E</span><span>N</span>
+        </div>
+        <div class="bounce" id="bounce" aria-hidden="true">UNDERWOODS</div>
+        <div class="whoosh" id="whoosh" aria-hidden="true"></div>
+        <div class="porch" aria-hidden="true">
+          <div class="roof"></div>
+          <div class="house"><i class="lamp" id="lamp"></i></div>
+        </div>
+        <div class="tape" id="tape" aria-hidden="true">
+          <div class="reel"></div>
+          <div class="reel"></div>
+        </div>
+      </div>
+      <div class="leds" aria-hidden="true">
+        <span id="led-koponen">K</span>
+        <span id="led-underwoods">U</span>
+        <span id="led-canonicus">C</span>
+      </div>
+      <div class="pads">
+        <button type="button" class="pad koponen" data-id="koponen">
+          <span class="name">Koponen</span>
+          <span class="fact">the Koponen (K-O-P-O-N-E-N) are awesome</span>
+        </button>
+        <button type="button" class="pad underwoods" data-id="underwoods">
+          <span class="name">Underwoods</span>
+          <span class="fact">the Underwoods are awesome</span>
+        </button>
+        <button type="button" class="pad canonicus" data-id="canonicus">
+          <span class="name">Canonicus</span>
+          <span class="fact">they had an awesome time at the Canonicus</span>
+        </button>
+        <button type="button" class="pad tubular" data-id="tubular">
+          <span class="name">Tubular</span>
+          <span class="fact">totally tubular</span>
+        </button>
+        <button type="button" class="pad radical" data-id="radical">
+          <span class="name">Radical</span>
+          <span class="fact">radical to the max</span>
+        </button>
+        <button type="button" class="pad mixtape" data-id="mixtape">
+          <span class="name">Mix Tape</span>
+          <span class="fact">leave the mix tape in</span>
+        </button>
+      </div>
+      <p class="fine">Six pads, six sounds, cooked up in the browser. No tape deck required.</p>
+    </section>
+  </div>
+  <noscript>
+    <p>the Koponen (K-O-P-O-N-E-N) are awesome. the Underwoods are awesome. they had an awesome time at the Canonicus.</p>
+  </noscript>
+
+  <script type="module">
+    import { applyHit, initialState } from "./src/awesome-pad.js";
+
+    let state = initialState();
+    let ctx;
+    let noiseBuf;
+
+    function audio() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!ctx) {
+        ctx = new AC();
+        const bus = ctx.createGain();
+        bus.gain.value = 0.9;
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -16;
+        comp.knee.value = 10;
+        comp.ratio.value = 8;
+        comp.attack.value = 0.003;
+        comp.release.value = 0.12;
+        bus.connect(comp);
+        comp.connect(ctx.destination);
+        ctx._bus = bus;
+      }
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    }
+
+    function out() {
+      return audio()._bus;
+    }
+
+    function noise(ac) {
+      if (noiseBuf) return noiseBuf;
+      const len = ac.sampleRate;
+      noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      return noiseBuf;
+    }
+
+    function tone(ac, dest, { type, freq, freqTo, t, dur, peak }) {
+      const o = ac.createOscillator();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t);
+      if (freqTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, freqTo), t + dur);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + Math.min(0.018, dur * 0.35));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g);
+      g.connect(dest);
+      o.start(t);
+      o.stop(t + dur + 0.03);
+    }
+
+    function burst(ac, dest, { t, dur, peak, filter, freq }) {
+      const src = ac.createBufferSource();
+      src.buffer = noise(ac);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let node = src;
+      if (filter) {
+        const f = ac.createBiquadFilter();
+        f.type = filter;
+        f.frequency.setValueAtTime(freq, t);
+        src.connect(f);
+        node = f;
+      }
+      node.connect(g);
+      g.connect(dest);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+
+    const PLAY = {
+      "saw-chord"(ac, t, dest) {
+        [196, 247, 294].forEach((freq, i) => {
+          tone(ac, dest, { type: "sawtooth", freq, t: t + i * 0.015, dur: 0.32, peak: 0.13 });
+        });
+      },
+      "square-arp"(ac, t, dest) {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          tone(ac, dest, { type: "square", freq, t: t + i * 0.075, dur: 0.09, peak: 0.12 });
+        });
+      },
+      "wave"(ac, t, dest) {
+        tone(ac, dest, { type: "triangle", freq: 220, t, dur: 0.42, peak: 0.2 });
+        burst(ac, dest, { t: t + 0.05, dur: 0.22, peak: 0.18, filter: "bandpass", freq: 900 });
+      },
+      "glide"(ac, t, dest) {
+        tone(ac, dest, { type: "sine", freq: 180, freqTo: 980, t, dur: 0.34, peak: 0.2 });
+        burst(ac, dest, { t, dur: 0.18, peak: 0.08, filter: "highpass", freq: 2000 });
+      },
+      "coin"(ac, t, dest) {
+        tone(ac, dest, { type: "square", freq: 988, t, dur: 0.08, peak: 0.14 });
+        tone(ac, dest, { type: "square", freq: 1319, t: t + 0.09, dur: 0.2, peak: 0.14 });
+      },
+      "beat"(ac, t, dest) {
+        [0, 0.28].forEach((step) => {
+          tone(ac, dest, { type: "sine", freq: 150, freqTo: 48, t: t + step, dur: 0.12, peak: 0.45 });
+        });
+        [0.14, 0.42].forEach((step) => {
+          burst(ac, dest, { t: t + step, dur: 0.09, peak: 0.2, filter: "highpass", freq: 1200 });
+        });
+        [0, 0.14, 0.28, 0.42, 0.56].forEach((step) => {
+          burst(ac, dest, { t: t + step, dur: 0.03, peak: 0.07, filter: "highpass", freq: 6000 });
+        });
+      },
+    };
+
+    function pulse(el, className) {
+      el.classList.remove(className);
+      void el.offsetWidth;
+      el.classList.add(className);
+    }
+
+    function react(next) {
+      const pad = next.pad;
+      const machine = document.getElementById("machine");
+      document.getElementById("score").textContent = String(next.score).padStart(6, "0");
+      document.getElementById("now").textContent = pad.line;
+      pulse(document.getElementById("score"), "bump");
+      pulse(document.getElementById("eq"), "go");
+      if (pad.id === "koponen") pulse(document.getElementById("tiles"), "play");
+      if (pad.id === "underwoods") pulse(document.getElementById("bounce"), "go");
+      if (pad.id === "tubular") pulse(document.getElementById("whoosh"), "go");
+      if (pad.id === "canonicus") {
+        const lamp = document.getElementById("lamp");
+        lamp.classList.add("on");
+        setTimeout(() => lamp.classList.remove("on"), 700);
+      }
+      if (pad.id === "radical") pulse(machine, "shake");
+      if (pad.id === "mixtape") pulse(document.getElementById("tape"), "spin");
+      if (pad.family) document.getElementById("led-" + pad.id).classList.add("lit");
+      if (next.unlocked) machine.classList.add("unlocked");
+    }
+
+    document.querySelectorAll(".pad").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const ac = audio();
+        state = applyHit(state, btn.dataset.id);
+        const t = ac.currentTime + 0.01;
+        PLAY[state.pad.kind](ac, t, ac._bus);
+        react(state);
+      });
+    });
+  </script>
 </body>
 </html>
